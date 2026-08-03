@@ -1,0 +1,656 @@
+{
+  "procedures": [
+    {
+      "id": "go-1",
+      "dept": "go",
+      "title": "Wydanie dokumentu tożsamości (Driving License)",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL) petenta",
+        "Sfotografowanie petenta na tle ściany",
+        "Wydrukowanie i wydanie dokumentu",
+        "Pobranie opłaty $100",
+        "(opcjonalnie) Odebranie wcześniejszego dokumentu"
+      ],
+      "notes": "Gracze zazwyczaj wyrabiają dokument u NPC przy ladzie — zawsze można ich tam odesłać."
+    },
+    {
+      "id": "go-2",
+      "dept": "go",
+      "title": "Rejestracja przedsiębiorstwa",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL) właściciela/właścicieli",
+        "Weryfikacja karalności (osoby karane za zbrodnie kwalifikowane nie mogą należeć do zarządu przedsiębiorstwa)",
+        "Rejestracja przedsiębiorstwa w systemie statecapitol.app (https://statecapitol.app/dashboard/go/business)",
+        "Dodaj → wypełniamy potrzebne dane"
+      ],
+      "notes": "Przepisy specjalistyczne (BFRT) — rejestracja w odpowiednim dziale:\n• kancelarie adwokackie — State Bar\n• placówki medyczne — Health and Human Services\n• koła łowieckie — Health and Human Services\n• przedsiębiorstwa ochroniarskie — Office of the Attorney General\n• działalność charytatywna — Office of the Attorney General, nadzorowana przez Internal Revenue Services\n• banki i usługi pożyczkowe — Internal Revenue Services\n• kasyna i przedsiębiorstwa oparte o hazard — Internal Revenue Services"
+    },
+    {
+      "id": "go-3",
+      "dept": "go",
+      "title": "Zawieszenie / zamknięcie przedsiębiorstwa",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Przyjęcie petenta oraz weryfikacja danych (DL)",
+        "Przyjęcie deklaracji (słownej lub pisemnej) od wszystkich członków zarządu o chęci zamknięcia/zawieszenia przedsiębiorstwa",
+        "Ustawienie odpowiedniego statusu przedsiębiorstwa w systemie statecapitol.app (https://statecapitol.app/dashboard/go/business)"
+      ],
+      "notes": "PROCEDURA W RAZIE WYPEŁNIANIA DECYZJI SĄDU:\n1. Przekazanie dokumentu o naruszeniach związanych z przedsiębiorstwem, określonych w Sekcjach 132–137 BFRT, oraz wyznaczenie terminu złożenia wyjaśnień / czynności naprawczych (7 dni)\n2. Przekazanie dokumentu z decyzją sądu o zamknięciu/zawieszeniu przedsiębiorstwa\n3. Fizyczne zamknięcie przedsiębiorstwa (założenie plomb na drzwi wejściowe)\n4. Sporządzenie sprawy w statecapitol.app w dziale IRS"
+    },
+    {
+      "id": "go-4",
+      "dept": "go",
+      "title": "Koncesje przedsiębiorstw — podstawowe",
+      "exec": "wszystkie działy State Capitol, z wyjątkami zawartymi w prawie",
+      "steps": [
+        "Przyjęcie i weryfikacja wniosku oraz danych właścicieli przedsiębiorstwa",
+        "Stworzenie sprawy w statecapitol.app i wrzucenie wniosku jako dokument zewnętrzny (https://statecapitol.app/dashboard/go/cases)",
+        "Dodanie koncesji w rejestrze koncesji w statecapitol.app (https://statecapitol.app/dashboard/go/registry/franchise)",
+        "Wystawienie dokumentu koncesji w sprawie założonej w punkcie 2 (Dokument urzędowy → Potwierdzenie wydania koncesji)",
+        "Pobranie opłaty bądź poinformowanie o konieczności wykonania przelewu"
+      ],
+      "notes": "Zwolnienie z koncesji: każde przedsiębiorstwo prowadzące działalność koncesjonowaną zwolnione jest z opłat koncesyjnych na pierwszy miesiąc działalności.\n\nAkty prawne:\n• BFRT 165–173 — produkcja, dystrybucja i sprzedaż wyrobów tytoniowych i nikotynowych\n• BFRT 180–188 — produkcja, dystrybucja i sprzedaż wyrobów alkoholowych\n• BFRT 195–207 — produkcja, dystrybucja i sprzedaż marihuany\n\nKoncesje specjalistyczne: broń palna i strzelnice — patrz Office of the Attorney General; hazard i loterie — patrz Internal Revenue Services."
+    },
+    {
+      "id": "go-5",
+      "dept": "go",
+      "title": "Przyjęcie testamentu",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL) petenta",
+        "Utworzenie sprawy na statecapitol.app (https://statecapitol.app/dashboard/go/cases)",
+        "Przyjęcie odręcznej wersji testamentu (jako dokument zewnętrzny), bądź przyjęcie testamentu przez urzędnika (stworzenie dokumentu urzędowego → Testament i wypełnienie)",
+        "Pobranie opłaty $5.000"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "go-6",
+      "dept": "go",
+      "title": "Wykonanie testamentu",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Przejęcie mienia spadkodawcy zawartego w testamencie",
+        "Sporządzenie dokumentu z wyceną mienia (Dokument urzędowy — Mienie testamentowe)",
+        "Weryfikacja tożsamości (DL) spadkobierców",
+        "Sporządzenie dokumentu z wykonania testamentu (Dokument urzędowy — Wykonanie testamentu)",
+        "Poinformowanie o konieczności uiszczenia opłat z racji testamentu",
+        "Rejestracja dokumentu potwierdzającego przekazanie mienia w sprawie testamentu w systemie statecapitol.app"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "go-7",
+      "dept": "go",
+      "title": "Wydanie aktu małżeństwa",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL) małżonków",
+        "Przyjęcie aktów urodzenia od małżonków",
+        "Weryfikacja tożsamości (DL) świadków",
+        "Stworzenie sprawy w aplikacji statecapitol.app (https://statecapitol.app/dashboard/go/cases)",
+        "Sporządzenie dokumentu „Licencja i akt małżeństwa\"",
+        "Podpisanie dokumentu przez urzędnika, małżonków oraz świadków",
+        "Wydanie aktu małżonkom",
+        "Pobranie opłaty w wysokości $150",
+        "Przesłanie wniosku o zmianie danych osobowych do Administracji Gubernatora"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "go-8",
+      "dept": "go",
+      "title": "Zawarcie małżeństwa przed urzędnikiem",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Ustalenie terminu i miejsca zawarcia małżeństwa",
+        "Pobranie opłaty w wysokości $800",
+        "Oficjalna ceremonia zawarcia małżeństwa"
+      ],
+      "notes": "PRZEBIEG CEREMONII\n\n1. Powitanie i wstęp — urzędnik:\n„Szanowni Państwo, zebraliśmy się tutaj w celu połączenia węzłem małżeńskim (Imię A) i (Imię B).\nZawarcie małżeństwa jest jednym z najważniejszych wydarzeń w życiu człowieka. Jest to nie tylko osobista decyzja dwojga ludzi, ale również wydarzenie społeczne — jest to moment, w którym powstaje nowa rodzina, objęta opieką i ochroną prawa obowiązującego w stanie San Andreas.\nZ chwilą zawarcia małżeństwa rozpoczyna się nowy etap życia małżonków. Powstają nowe prawa i obowiązki oparte na wzajemnym szacunku, równości, zaufaniu oraz odpowiedzialności. Małżonkowie zobowiązują się do wspólnego życia, wzajemnej pomocy, lojalności, wierności oraz współdziałania dla dobra rodziny, którą od tej chwili wspólnie tworzą.\nMałżeństwo jest decyzją uroczystą i nie powinno być zawierane pochopnie, lecz świadomie, odpowiedzialnie i z pełnym zrozumieniem wynikających z niego zobowiązań.\nZawarcie małżeństwa następuje poprzez złożenie zgodnych oświadczeń woli przed urzędnikiem State Capitolu w obecności świadków.\nCzy Wy, (Imię A) i (Imię B), jesteście zdecydowani na złożenie takich oświadczeń i zawarcie związku małżeńskiego?\"\nPara młoda: „Tak.\"\nUrzędnik: „Proszę zatem wszystkich Państwa o powstanie. Państwo Młodzi, proszę stańcie naprzeciw siebie, spójrzcie sobie w oczy i splećcie razem dłonie.\"\n\n2. Złożenie oświadczeń — urzędnik do każdej z osób:\n„Czy Ty, (Imię), świadomy(-a) praw i obowiązków wynikających z zawarcia małżeństwa, bierzesz sobie (Imię) za prawowitego współmałżonka / prawowitą współmałżonkę i przyrzekasz pozostawać przy nim / niej od tego dnia w przód w chwilach dobrych i złych, w dostatku i niedostatku, w zdrowiu i chorobie, okazywać szacunek, wsparcie i uczynić wszystko, aby Wasze małżeństwo było zgodne, szczęśliwe i trwałe?\"\nOsoba: „Tak.\"\n\n3. Potwierdzenie świadków — urzędnik:\n„Czy świadkowie potwierdzają, że oświadczenia zostały złożone dobrowolnie i w ich obecności?\"\nŚwiadkowie: „Tak.\"\n\n4. Wymiana obrączek (jeżeli przewidziano) — urzędnik:\n„Proszę o podanie obrączek.\n(Imię A), wsuń proszę obrączkę na serdeczny palec lewej dłoni (Imię B) i powtarzaj za mną: «Daję Ci tę obrączkę jako znak i przyrzeczenie mojej stałej wierności i nieprzemijającej miłości».\"\n(analogicznie druga osoba)\n\n5. Ogłoszenie zawarcia małżeństwa — urzędnik:\n„Wobec zgodnie złożonych oświadczeń, w obecności świadków oraz przede mną — urzędnikiem State Capitolu — oświadczam, że pomiędzy (Imię A) i (Imię B) został zawarty związek małżeński zgodnie z obowiązującymi przepisami prawa stanu San Andreas.\nOd tej chwili jesteście małżeństwem. Możecie się pocałować.\"\n\n6. Podpisanie dokumentów — urzędnik:\n„Dowodem zawarcia małżeństwa jest protokół przyjęcia oświadczeń wstąpienia w związek małżeński, na podstawie którego zostanie sporządzony akt małżeństwa. A teraz zapraszam małżonków wraz ze świadkami do złożenia podpisów.\"\n\n7. Zakończenie — urzędnik:\n„Na skutek zgodnie złożonych oświadczeń, w obecności świadków oraz przede mną, urzędnikiem State Capitolu, został zawarty pomiędzy Państwem związek małżeński zgodnie z obowiązującymi przepisami prawa stanu San Andreas.\nPozostaje mi już tylko dopełnić ten wyjątkowy moment i z prawdziwą przyjemnością, w imieniu State Capitolu, złożyć Państwu najserdeczniejsze życzenia.\nŻyczę Państwu, aby połączone dziś myśli, marzenia i uczucia towarzyszyły Wam każdego dnia i promieniowały trwałym szczęściem małżeńskim. Niech decyzja podjęta w tej chwili stanie się źródłem wzajemnego wsparcia, zaufania, spokoju oraz siły do wspólnego pokonywania wszystkich wyzwań.\nŻyczę Państwu, abyście zawsze odnajdywali w sobie cierpliwość, wytrwałość i radość z bycia razem, a każdy kolejny dzień tej wspólnej drogi przynosił Państwu poczucie bezpieczeństwa, spełnienia i dumy z rodziny, którą dziś tworzycie.\nCeremonię uznaję za zakończoną. Gratuluję Państwu zawarcia małżeństwa i życzę wszystkiego, co najlepsze na nowej drodze życia.\" "
+    },
+    {
+      "id": "go-9",
+      "dept": "go",
+      "title": "Wydanie aktu rozwiązania małżeństwa",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości stron (małżonek, małżonka)",
+        "Przyjęcie dokumentacji związanej z rozwodem",
+        "Stworzenie sprawy w statecapitol.app (https://statecapitol.app/dashboard/go/cases)",
+        "Wydanie aktu rozwiązania małżeństwa"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "go-10",
+      "dept": "go",
+      "title": "Rejestracja imprezy masowej",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Przyjęcie wniosku o zorganizowanie imprezy masowej",
+        "Utworzenie sprawy w statecapitol.app oraz wrzucenie wniosku jako dokument zewnętrzny (https://statecapitol.app/dashboard/go/cases)",
+        "W razie potrzeby wydania konkretnych zezwoleń na organizację imprezy — skierowanie do odpowiedniego działu (DMV, IRS, OAG)",
+        "Wydanie dokumentu potwierdzającego zarejestrowanie imprezy masowej (Dokument urzędowy — Zezwolenie na imprezę masową)",
+        "Poinformowanie o konieczności zgłoszenia imprezy do służb publicznych (Police Department, Medical Services)"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "go-11",
+      "dept": "go",
+      "title": "Rejestracja weteranów wojennych (SAVet)",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL)",
+        "Weryfikacja dokumentów (DD-214 — świadectwo zwolnienia ze służby wojskowej)",
+        "Weryfikacja karalności",
+        "Zamieszczenie dokumentów na stronie statecapitol.app (https://statecapitol.app/dashboard/go/cases/136)",
+        "Rejestracja weterana na stronie statecapitol.app (https://statecapitol.app/dashboard/go/registry/veteran)",
+        "Rejestracja weterana w MDT (raport SAVet — rejestr weteranów, ID: 566)"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "go-12",
+      "dept": "go",
+      "title": "Przydzielenie renty",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL)",
+        "Utworzenie sprawy w statecapitol.app (RENTA — imię i nazwisko (SSN)) (https://statecapitol.app/dashboard/go/cases)",
+        "Przyjęcie dokumentów związanych z wydaniem renty (zaświadczenie lekarskie)",
+        "Przyjęcie danych do przelewu",
+        "Przekazanie sprawy do Administracji Gubernatora"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "go-13",
+      "dept": "go",
+      "title": "Przydzielenie emerytury",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL)",
+        "Utworzenie sprawy w statecapitol.app (EMERYTURA — imię i nazwisko (SSN)) (https://statecapitol.app/dashboard/go/cases)",
+        "Przyjęcie dokumentów związanych z wydaniem emerytury (świadectwo pracy)",
+        "Przyjęcie danych do przelewu",
+        "Przekazanie sprawy do Administracji Gubernatora"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "go-14",
+      "dept": "go",
+      "title": "Grzywny i kary",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja naruszeń",
+        "Utworzenie sprawy w statecapitol.app",
+        "(jeżeli naruszenia nie są poważne) Przekazanie dokumentu o konieczności zastosowania działań naprawczych w ustalonym terminie (do 7 dni)",
+        "(jeżeli naruszenia są poważne, bądź działania naprawcze nie zostały wykonane) Utworzenie raportu w MDT, wystawienie grzywny za wybrane naruszenia"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "dmv-1",
+      "dept": "dmv",
+      "title": "Licencja C",
+      "exec": "licencjonowani pracownicy State Capitol",
+      "steps": [],
+      "notes": "Procedura egzaminacyjna prowadzona przez licencjonowanych pracowników."
+    },
+    {
+      "id": "dmv-2",
+      "dept": "dmv",
+      "title": "Licencja M1",
+      "exec": "licencjonowani pracownicy State Capitol",
+      "steps": [],
+      "notes": "Procedura egzaminacyjna prowadzona przez licencjonowanych pracowników."
+    },
+    {
+      "id": "dmv-3",
+      "dept": "dmv",
+      "title": "Licencja A",
+      "exec": "licencjonowani pracownicy State Capitol",
+      "steps": [],
+      "notes": "Procedura egzaminacyjna prowadzona przez licencjonowanych pracowników."
+    },
+    {
+      "id": "dmv-4",
+      "dept": "dmv",
+      "title": "Licencja H",
+      "exec": "licencjonowani pracownicy State Capitol",
+      "steps": [],
+      "notes": "Procedura egzaminacyjna prowadzona przez licencjonowanych pracowników."
+    },
+    {
+      "id": "dmv-5",
+      "dept": "dmv",
+      "title": "Licencja F",
+      "exec": "licencjonowani pracownicy State Capitol",
+      "steps": [],
+      "notes": "Procedura egzaminacyjna prowadzona przez licencjonowanych pracowników."
+    },
+    {
+      "id": "dmv-7",
+      "dept": "dmv",
+      "title": "Licencja Taxi",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (ID)",
+        "Weryfikacja kartoteki karnej pod względem przestępstw",
+        "Weryfikacja badań lekarskich (raporty w MDT — szukamy po imieniu i nazwisku)",
+        "Pobranie opłaty $300",
+        "Rejestracja licencji w systemie statecapitol.app (https://statecapitol.app/dashboard/dmv/registry/taxi)",
+        "Rejestracja licencji w systemie MDT"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "dmv-6",
+      "dept": "dmv",
+      "title": "San Andreas Legacy Plate Program (SALPP)",
+      "exec": "wszyscy pracownicy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL)",
+        "Weryfikacja pojazdu, który ma zostać objęty programem",
+        "Pobranie opłaty $2000",
+        "Wypisanie notatki przypisanej do pojazdu o nazwie SALPP z treścią: „Na pojazd wykupiona została zgoda z ark. VEH 188E na zmianę koloru i wzoru tablicy rejestracyjnej.\"",
+        "Udostępnienie notatki do Los Santos Police Department"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "hhs-1",
+      "dept": "hhs",
+      "title": "Wydanie certyfikatu sanitarno-epidemiologicznego",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL)",
+        "Weryfikacja badań lekarskich (MDT → Raporty → szukamy raportu: SAMS - MPS - imię i nazwisko)",
+        "Pobranie opłaty $150",
+        "Rejestracja certyfikatu w systemie statecapitol.app (https://statecapitol.app/dashboard/hhs/registry/sani)"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "hhs-2",
+      "dept": "hhs",
+      "title": "Licencje myśliwskie",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL)",
+        "Weryfikacja badań lekarskich (MDT — raport SAMS - P:BM - imię i nazwisko)",
+        "Weryfikacja certyfikatu egzaminu myśliwskiego (kanał hhs-licencje-myśliwskie)",
+        "Weryfikacja karalności (przestępstwa związane z bronią palną)",
+        "Pobranie opłaty $750",
+        "Rejestracja licencji w systemie statecapitol.app (https://statecapitol.app/dashboard/hhs/registry/hunting)",
+        "Rejestracja licencji w MDT"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "hhs-8",
+      "dept": "hhs",
+      "title": "Odnowienie licencji myśliwskiej",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości",
+        "Weryfikacja licencji w systemie statecapitol.app",
+        "Weryfikacja ważnych badań psychologicznych",
+        "Weryfikacja karalności (przestępstwa związane z bronią palną)",
+        "Pobranie opłaty $750",
+        "Odnowienie licencji w systemie statecapitol.app",
+        "Odnowienie licencji w MDT"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "hhs-3",
+      "dept": "hhs",
+      "title": "Licencje wędkarskie",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości (DL)",
+        "Weryfikacja certyfikatu egzaminu (TICKET — hhs-wędkarskie)",
+        "Pobranie opłaty $150",
+        "Rejestracja licencji w systemie statecapitol.app",
+        "Rejestracja licencji w MDT"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "hhs-4",
+      "dept": "hhs",
+      "title": "Kontrola myśliwych",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Wylegitymowanie osoby kontrolowanej (DL, licencja)",
+        "Przeprowadzenie kontroli zgodnie z określonym zakresem",
+        "(jeśli są naruszenia) Wystawienie grzywny"
+      ],
+      "notes": "Zakres kontroli:\n• dokumenty licencyjne (posiadanie dokumentu, ważność)\n• obszar łowiecki\n• gatunki chronione\n• broń (stan techniczny)"
+    },
+    {
+      "id": "hhs-5",
+      "dept": "hhs",
+      "title": "Kontrola wędkarzy",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Wylegitymowanie osoby kontrolowanej (DL, licencja)",
+        "Przeprowadzenie kontroli zgodnie z określonym zakresem",
+        "(jeśli są naruszenia) Wystawienie grzywny"
+      ],
+      "notes": "Zakres kontroli:\n• dokumenty licencyjne (posiadanie dokumentu, ważność)\n• obszar łowiecki\n• gatunki chronione"
+    },
+    {
+      "id": "hhs-6",
+      "dept": "hhs",
+      "title": "Kontrola BHP",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Utworzenie sprawy na statecapitol.app (bądź umieszczenie dokumentacji w innej sprawie)",
+        "(jeśli kontrola zapowiedziana) Przekazanie dokumentu o przeprowadzeniu kontroli w wybranym terminie (od 3 do 7 dni)",
+        "(jeśli niezapowiedziana) Przekazanie dokumentu o niezapowiedzianej kontroli w momencie wykonania",
+        "Przeprowadzenie kontroli zgodnie z zakresem",
+        "Sporządzenie raportu z kontroli",
+        "Przekazanie raportu z kontroli, poinformowanie o konieczności zastosowania działań naprawczych lub stosowanie kar (opisane w Governor's Office)"
+      ],
+      "notes": "ZAKRES KONTROLI BHP\n\n1. Dokumentacja BHP — aktualne szkolenia BHP (wstępne i okresowe), aktualne badania lekarskie, instrukcje stanowiskowe BHP, ocena ryzyka zawodowego, rejestr wypadków przy pracy, uprawnienia do obsługi maszyn i urządzeń\n\n2. Stan techniczny stanowisk pracy — stan maszyn i urządzeń (osłony, zabezpieczenia), sprawność narzędzi ręcznych i elektrycznych, oznakowanie maszyn, porządek i czystość, ergonomia stanowisk\n\n3. Środki ochrony indywidualnej — dostępność wymaganych ŚOI (kaski, rękawice, okulary, odzież robocza), stan techniczny, stosowanie przez pracowników, właściwe przechowywanie\n\n4. Bezpieczeństwo pożarowe — dostępność i oznakowanie gaśnic, drożność dróg ewakuacyjnych, oznakowanie wyjść, aktualność instrukcji ppoż., znajomość zasad ewakuacji\n\n5. Instalacje i media — stan instalacji elektrycznej, zabezpieczenia przed porażeniem, oznakowanie rozdzielni, brak prowizorycznych podłączeń, sprawność wentylacji i oświetlenia\n\n6. Organizacja pracy — przestrzeganie procedur BHP, nadzór nad pracownikami, prace szczególnie niebezpieczne, polecenia pisemne (jeżeli wymagane)\n\n7. Pierwsza pomoc — wyposażenie apteczek, oznakowanie punktów pierwszej pomocy, wyznaczeni i przeszkoleni ratownicy, instrukcje udzielania pierwszej pomocy\n\n8. Zachowanie pracowników — przestrzeganie zasad BHP, brak zachowań niebezpiecznych, stosowanie się do poleceń przełożonych, brak pracy pod wpływem alkoholu lub środków odurzających"
+    },
+    {
+      "id": "hhs-7",
+      "dept": "hhs",
+      "title": "Kontrola sanitarna",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Utworzenie sprawy na statecapitol.app (bądź umieszczenie dokumentacji w innej sprawie)",
+        "Przekazanie dokumentu o kontroli (zapowiedziana: 3–7 dni / niezapowiedziana: w momencie wykonania)",
+        "Przeprowadzenie kontroli zgodnie z zakresem",
+        "Sporządzenie raportu z kontroli",
+        "Przekazanie raportu, poinformowanie o działaniach naprawczych lub stosowanie kar"
+      ],
+      "notes": "ZAKRES KONTROLI SANITARNEJ\n\n1. Dokumentacja sanitarna — książeczki sanitarno-epidemiologiczne, orzeczenia lekarskie, procedury higieniczne, instrukcje mycia i dezynfekcji, dokumentacja HACCP (jeżeli dotyczy), rejestry mycia, dezynfekcji i deratyzacji\n\n2. Higiena personelu — czystość odzieży roboczej, odzież ochronna (czepki, rękawice, fartuchy), higiena rąk, brak biżuterii i sztucznych paznokci (jeżeli wymagane), stan zdrowia personelu\n\n3. Pomieszczenia i wyposażenie — czystość pomieszczeń, stan ścian, podłóg i sufitów, wentylacja i oświetlenie, oddzielenie stref czystych i brudnych, stan techniczny mebli i urządzeń\n\n4. Mycie i dezynfekcja — dostępność środków, oznakowanie chemii, częstotliwość mycia, odpowiednie stężenia, oddzielny sprzęt do różnych stref\n\n5. Woda i ścieki — bieżąca woda ciepła i zimna, jakość wody, sprawna kanalizacja, brak wycieków, zabezpieczenie przed cofnięciem ścieków\n\n6. Gospodarka odpadami — właściwe pojemniki, regularne opróżnianie, segregacja, czystość miejsca gromadzenia, umowy na odbiór\n\n7. Przechowywanie produktów — warunki (temperatura, wilgotność), oddzielenie produktów, oznakowanie, terminy ważności, zabezpieczenie przed szkodnikami\n\n8. Zwalczanie szkodników — zabezpieczenie pomieszczeń, aktualna deratyzacja i dezynsekcja, brak śladów szkodników, dokumentacja DDD\n\n9. Zaplecze sanitarne — toalety dla personelu, mydło, środki dezynfekcyjne i ręczniki, oddzielne toalety (jeżeli wymagane), czystość sanitariatów"
+    },
+    {
+      "id": "irs-1",
+      "dept": "irs",
+      "title": "Przyjęcie deklaracji podatkowej oraz naliczenie podatku",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Przyjęcie deklaracji podatkowej przez urzędnika",
+        "Wrzucenie deklaracji do sprawy danego przedsiębiorstwa w dziale IRS / jeśli osoba prywatna — wrzucenie deklaracji do folderu zbiorczego deklaracji podatkowych (https://statecapitol.app/dashboard/irs/cases/862)",
+        "Obliczenie kwoty podatku, poinformowanie o należnej płatności oraz terminie zapłaty podatku (7 dni)",
+        "Przekazanie danych do przelewu — Numer konta: 3418 7488, Nazwa konta: State Capitol, Tytuł przelewu: Podatek (nazwa przedsiębiorstwa / imię i nazwisko osoby prywatnej)",
+        "(jeśli przedsiębiorstwo) Wprowadzenie kwoty ustalonego podatku w rejestrze przedsiębiorstw w statecapitol.app",
+        "(po dostarczeniu potwierdzenia przelewu) Opłacenie podatku w dziale podatki danego przedsiębiorstwa",
+        "(jeśli osoba/przedsiębiorstwo nie zapłaci podatku w wyznaczonym terminie) Skierowanie sprawy do IRS CI"
+      ],
+      "notes": "PRZYKŁADOWA ODPOWIEDŹ — deklaracja podatkowa przedsiębiorstwa:\n\nDzień dobry,\nW imieniu Internal Revenue Service informuję, iż podatek za [MIESIĄC] wynosi [KWOTA]. Proszę o wykonanie przelewu na numer konta State Capitolu tj. 34187488 z tytułem przelewu \"Podatek (nazwa przedsiębiorstwa)\" i zamieszczenie potwierdzenia dokonania przelewu. Czas na opłacenie podatku wynosi 7 dni, tj. do dnia MM/DD/YY.\n\nZ wyrazami szacunku,\n[STOPIEŃ]\n[IMIĘ NAZWISKO]\n\n───────────────\n\nPRZYKŁADOWA ODPOWIEDŹ — deklaracja od wzbogacenia osoby prywatnej:\n\nDzień dobry,\nW imieniu Internal Revenue Service informuję, iż podatek od wzbogacenia wynosi [KWOTA]. Proszę o wykonanie przelewu na numer konta State Capitolu tj. 34187488 z tytułem przelewu \"Podatek (imię nazwisko)\" i zamieszczenie potwierdzenia dokonania przelewu. Czas na opłacenie podatku wynosi 7 dni, tj. do dnia MM/DD/YY.\n\nZ wyrazami szacunku,\n[STOPIEŃ]\n[IMIĘ NAZWISKO]"
+    },
+    {
+      "id": "irs-2",
+      "dept": "irs",
+      "title": "Szczegółowa kontrola podatkowa",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Przekazanie dokumentu o konieczności wykonania szczegółowej kontroli podatkowej w ustalonym terminie (3 dni)",
+        "Weryfikacja przychodów i rozchodów przedsiębiorstwa/osoby prywatnej wraz z osobami zarządzającymi / osobą prywatną",
+        "Sporządzenie raportu z kontroli",
+        "(w przypadku naruszeń) Wyznaczenie terminów wyjaśnień / działań naprawczych, bądź ukaranie grzywną"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "irs-3",
+      "dept": "irs",
+      "title": "Zajęcie mienia",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Przyjęcie wniosku o zajęcie mienia osoby prywatnej/przedsiębiorstwa",
+        "Weryfikacja wniosku",
+        "Zgłoszenie do IRS CI konieczności wykonania zajęcia mienia",
+        "Wykonanie zajęcia mienia z IRS-CI",
+        "Wysłanie żądania przeniesienia własności zajętego mienia (kanał ⌈🚘⌋samochody)",
+        "Sporządzenie raportu windykacyjnego",
+        "Wycena zajętego mienia — wrzucenie zajętego mienia do zakładki zajęte mienie (https://statecapitol.app/dashboard/irsci/seized)",
+        "Poinformowanie o możliwości wykupienia mienia w terminie do 14 dni, chyba że decyzja sądu jest inna"
+      ],
+      "notes": "Wycena mienia:\n• pojazdy — 70% ceny katalogowej pojazdu\n• nieruchomości — 100% ceny nieruchomości\n• mienie wartościowe (biżuteria, przedmioty wartościowe) — 100% ceny mienia\n\nWarunki zajęcia nieruchomości:\nOsoba posiadająca nieruchomości musi mieć zagwarantowane miejsce zamieszkania. W przypadku zajęcia jedynej nieruchomości należącej do osoby, Stan ma obowiązek zagwarantować mieszkanie (The Fork). Mieszkania na The Fork nie mogą zostać zajęte (chyba że osoba posiada więcej niż jedno mieszkanie). Mienie prywatne w mieszkaniach nie podlega zajęciu, chyba że jest to mienie wartościowe ujęte wyżej."
+    },
+    {
+      "id": "irs-4",
+      "dept": "irs",
+      "title": "Wykupienie mienia",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja tożsamości oraz raportu z zajęcia mienia",
+        "Poinformowanie o kwocie wykupienia mienia",
+        "Przekazanie danych do przelewu — Numer konta: 3418 7488, Nazwa konta: State Capitol, Tytuł przelewu: NUMER SPRAWY — wykup mienia",
+        "Przyjęcie potwierdzenia przelewu",
+        "Przekazanie mienia właścicielowi (wrzucenie żądania wydania pojazdu na kanał ⌈🚘⌋samochody)"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "irs-5",
+      "dept": "irs",
+      "title": "Licytacja mienia",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja zajętego mienia (mienie nie wykupione przez właściciela)",
+        "Ustalenie cen minimalnych mienia (50% wartości zajętego mienia)",
+        "Przeprowadzenie licytacji",
+        "Dopuszczenie osób do licytowania (w licytacji mogą brać udział osoby, które nie mają debetu na koncie bankowym)",
+        "Wydanie mienia osobie wygrywającej licytację (kanał ⌈🚘⌋samochody)"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "irs-6",
+      "dept": "irs",
+      "title": "Działania windykacyjne (dłużnicy z debetem)",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja osób z debetem (MDT → Konta bankowe → ustawiamy minimalny debet na $10 000); porównujemy z bazą dłużników (https://statecapitol.app/dashboard/irs/debetors)",
+        "Kontakt z dłużnikiem (dzwonimy na numer przypisany do konta bankowego oraz wysyłamy maila); ustalamy termin spłaty (maksymalnie miesiąc)",
+        "Wpisanie dłużnika do bazy danych (https://statecapitol.app/dashboard/irs/debetors)",
+        "Weryfikacja długu po terminie spłaty",
+        "Jeśli spłacono — oznaczenie wykonanej spłaty",
+        "Jeśli nie spłacono — ponowny kontakt z dłużnikiem i wydłużenie czasu na spłatę o kolejne dwa tygodnie (maksymalnie), LUB sporządzenie wniosku do sądu o zajęcie mienia w ramach długu"
+      ],
+      "notes": "WZÓR MAILA:\n\nDzień dobry,\nW nawiązaniu do rozmowy telefonicznej informuję, iż deklarowany czas na spłatę debetu wynosi [ILOŚĆ DNI] tj. do MM/DD/YY. W razie niedotrzymania terminu Internal Revenue Service rozpocznie działania mające na celu odzyskanie długu.\n\nZ poważaniem,\n[Stopień, imię nazwisko]"
+    },
+    {
+      "id": "irs-7",
+      "dept": "irs",
+      "title": "Archiwizacja umów kredytowych — Velvet Bank",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Weryfikacja przesłanej umowy na kanale ⌈🤑⌋velvetbank-irs",
+        "Wrzucenie przesłanej umowy do archiwum (https://statecapitol.app/dashboard/irs/cases/1009)",
+        "Oznaczenie obsłużonej umowy"
+      ],
+      "notes": "PROCEDURA ARCHIWIZACJI OŚWIADCZEŃ O SPŁACIE:\n1. Weryfikacja przesłanego oświadczenia na kanale ⌈🤑⌋velvetbank-irs\n2. Wrzucenie przesłanego oświadczenia do archiwum (https://statecapitol.app/dashboard/irs/cases/1047)\n3. Oznaczenie obsłużonego oświadczenia"
+    },
+    {
+      "id": "irs-8",
+      "dept": "irs",
+      "title": "Koncesje przedsiębiorstw — specjalistyczne (hazard i loterie)",
+      "exec": "wszystkie działy State Capitol",
+      "steps": [
+        "Przyjęcie i weryfikacja wniosku oraz danych właścicieli przedsiębiorstwa",
+        "Stworzenie sprawy w statecapitol.app i wrzucenie wniosku jako dokument zewnętrzny (https://statecapitol.app/dashboard/irs/cases)",
+        "Dodanie koncesji w rejestrze koncesji w statecapitol.app (https://statecapitol.app/dashboard/go/registry/franchise)",
+        "Wystawienie dokumentu koncesji w sprawie założonej w punkcie 2 (Dokument urzędowy → Potwierdzenie wydania koncesji)",
+        "Pobranie opłaty bądź poinformowanie o konieczności wykonania przelewu"
+      ],
+      "notes": "Akty prawne:\n• BFRT 245–249 — hazard i gry losowe\n• BFRT 255–257 — loterie"
+    },
+    {
+      "id": "oag-1",
+      "dept": "oag",
+      "title": "Egzamin oraz wydanie licencji na broń (CCP)",
+      "exec": "Office of the Attorney General",
+      "steps": [
+        "Przyjęcie petenta w biurze OAG",
+        "Weryfikacja tożsamości (ID)",
+        "Weryfikacja badań lekarskich i psychologicznych (MDT → Raporty → wyszukujemy NAZWISKIEM raportu SAMS - P - imię i nazwisko)",
+        "Weryfikacja karalności (MDT → profil obywatela → analiza wyroków; karany za przestępstwa = odmowa wydania licencji i przeprowadzenia egzaminu; wykroczenia/tickety = egzamin przeprowadzamy normalnie)",
+        "Przeprowadzenie egzaminu — zadajemy nie mniej niż 5 pytań z listy pytań",
+        "Pobranie opłaty $3000 (aplikacja Terminal w telefonie)",
+        "Rejestracja licencji w systemie statecapitol.app (https://statecapitol.app/dashboard/oag/registry/firearms_license) — wpisujemy imię, nazwisko oraz SSN, zaznaczamy: aktywna, prywatna i akceptujemy",
+        "Rejestracja licencji w systemie MDT — szukamy obywatela w bazie danych i zaznaczamy „Weapon License\", żeby świeciło się na zielono",
+        "Poinformowanie o konieczności odnowienia licencji po upływie 3 miesięcy"
+      ],
+      "notes": "LICENCJA NA BROŃ DLA FUNKCJONARIUSZY:\n1. Przyjęcie petenta w biurze OAG\n2. Weryfikacja tożsamości (ID)\n3. Sprawdzenie odznaki i stopnia (wymagany minimum stopień Police Officer II / Correctional Officer II)\n4. Pobranie opłaty $1000 — aplikacja Terminal w telefonie (trzeba zmienić kwotę)\n5. Rejestracja licencji w systemie statecapitol.app — wpisujemy imię, nazwisko, SSN i badge number, zaznaczamy: aktywna, prywatna i akceptujemy\n6. Rejestracja licencji w systemie MDT — tak samo jak w przypadku cywila\n\nLicencja dla funkcjonariuszy jest BEZTERMINOWA. Jeśli funkcjonariusz kończy pracę w służbach publicznych, odnawia ją zgodnie z ogólnymi zasadami."
+    },
+    {
+      "id": "oag-2",
+      "dept": "oag",
+      "title": "Odnowienie licencji na broń",
+      "exec": "Office of the Attorney General",
+      "steps": [
+        "Przyjęcie petenta w biurze OAG",
+        "Weryfikacja tożsamości (ID)",
+        "Weryfikacja badań lekarskich i psychologicznych (MDT → Raporty → wyszukujemy NAZWISKIEM raportu SAMS - P - imię i nazwisko)",
+        "Weryfikacja karalności (MDT → profil obywatela → analiza wyroków; zasady takie jak przy wydawaniu licencji)",
+        "Pobranie opłaty $1500",
+        "Odnowienie licencji w systemie statecapitol.app (https://statecapitol.app/dashboard/oag/registry/firearms_license) — wyszukujemy obywatela (najszybciej po SSN), klikamy strzałki tworzące kółko po prawej stronie na końcu zakładki obywatela i odnawiamy",
+        "Rejestracja licencji w systemie MDT — tak samo jak w przypadku wydawania licencji",
+        "Poinformowanie o konieczności odnowienia licencji po upływie 3 miesięcy z aktualnymi badaniami psychologicznymi"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "oag-3",
+      "dept": "oag",
+      "title": "Koncesje przedsiębiorstw — specjalistyczne (broń palna i strzelnice)",
+      "exec": "Office of the Attorney General",
+      "steps": [
+        "Przyjęcie i weryfikacja wniosku oraz danych właścicieli przedsiębiorstwa",
+        "Stworzenie sprawy w statecapitol.app i wrzucenie wniosku jako dokument zewnętrzny (https://statecapitol.app/dashboard/go/cases)",
+        "Dodanie koncesji w rejestrze koncesji w statecapitol.app (https://statecapitol.app/dashboard/go/registry/franchise)",
+        "Wystawienie dokumentu koncesji w sprawie założonej w punkcie 2 (Dokument urzędowy → Potwierdzenie wydania koncesji)",
+        "Pobranie opłaty bądź poinformowanie o konieczności wykonania przelewu"
+      ],
+      "notes": "Akty prawne:\n• BFRT 215–225 — produkcja, dystrybucja i sprzedaż broni palnej i amunicji\n• BFRT 230–238 — strzelnice"
+    },
+    {
+      "id": "sb-1",
+      "dept": "sb",
+      "title": "Rejestracja kancelarii adwokackiej",
+      "exec": "State Bar of San Andreas",
+      "steps": [
+        "Weryfikacja tożsamości (DL) właściciela/właścicieli",
+        "Weryfikacja karalności (pod względem przestępstw)",
+        "Weryfikacja licencji adwokackich właściciela/właścicieli (https://statecapitol.app/dashboard/sb/registry/attorney)",
+        "Rejestracja kancelarii w State Bar of San Andreas (PLF — nazwa kancelarii) (https://statecapitol.app/dashboard/sb/cases)",
+        "Rejestracja przedsiębiorstwa w systemie statecapitol.app z adnotacją „300-304 BFRT\" i odnośnikiem do zarejestrowanej kancelarii (punkt 4.) (https://statecapitol.app/dashboard/go/registry/business)",
+        "(opcjonalne) Wydanie potwierdzenia rejestracji przedsiębiorstwa",
+        "Pouczenie o konieczności zgłaszania każdego czynnego adwokata zatrudnionego w kancelarii (Skład osobowy w https://statecapitol.app/dashboard/sb/cases)"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "sb-2",
+      "dept": "sb",
+      "title": "Rejestracja adwokata",
+      "exec": "State Bar of San Andreas",
+      "steps": [
+        "Weryfikacja tożsamości (DL) petenta",
+        "Weryfikacja karalności (pod względem przestępstw)",
+        "Weryfikacja dyplomu Juris Doctor / Master of Law i zdanego Bar Exam lub weryfikacja zgłoszenia z egzaminem",
+        "Pobranie opłaty w wysokości $150",
+        "Rejestracja licencji adwokackiej w systemie statecapitol.app (https://statecapitol.app/dashboard/sb/registry/attorney)",
+        "Pouczenie o konieczności zatrudnienia w kancelarii lub rejestracja adwokata jako niezrzeszonego (PA — imię i nazwisko) (https://statecapitol.app/dashboard/sb/cases)",
+        "Pouczenie o konieczności zgłoszenia minimum jednej sprawy „Pro Bono\" w miesiącu do State Bar of San Andreas",
+        "Pouczenie o terminowości wygaśnięcia licencji (3 miesiące)",
+        "(opcjonalne) Wydanie potwierdzenia wydania licencji adwokackiej"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "sb-3",
+      "dept": "sb",
+      "title": "Rejestracja na Bar Exam",
+      "exec": "wszystkie działy",
+      "steps": [
+        "Weryfikacja tożsamości (DL) petenta",
+        "Weryfikacja karalności (pod względem przestępstw)",
+        "Pobranie opłaty w wysokości $1200",
+        "Skierowanie petenta do aplikacji State Capitol w celu umówienia się na egzamin",
+        "Pouczenie petenta o konieczności załączenia potwierdzenia opłaty przy zakładaniu nowego zgłoszenia"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "sb-4",
+      "dept": "sb",
+      "title": "Kontrola kancelarii z tytułu „Pro Bono\"",
+      "exec": "State Bar of San Andreas",
+      "steps": [
+        "Weryfikacja aktualnie działających kancelarii w State Bar of San Andreas (PLF — nazwa kancelarii) lub adwokatów niezrzeszonych (PA — imię i nazwisko) (https://statecapitol.app/dashboard/sb/cases)",
+        "Weryfikacja zgłoszonych spraw „Pro Bono\" (nowe zgłoszenie do State Bar) lub zgłoszenie osobiście w State Capitol",
+        "W przypadku braku zgłoszonych nowych spraw — przesłanie ponaglenia i zarejestrowanie go w systemie (https://statecapitol.app/dashboard/sb/cases)",
+        "Utworzenie dokumentu potwierdzającego sprawę „Pro Bono\" wykonaną przez każdego pracownika kancelarii („Imię i nazwisko adwokata + miesiąc + Pro Bono\") (https://statecapitol.app/dashboard/sb/cases)"
+      ],
+      "notes": ""
+    }
+  ],
+  "log": [
+    {
+      "date": "07/23/2026",
+      "type": "mod",
+      "text": "Zbiorcza aktualizacja procedur z Discorda — Governor's Office, DMV, HHS, IRS i State Bar"
+    },
+    {
+      "date": "07/23/2026",
+      "type": "mod",
+      "text": "Zaktualizowano pełny przebieg ceremonii zawarcia małżeństwa przed urzędnikiem"
+    },
+    {
+      "date": "07/23/2026",
+      "type": "add",
+      "text": "Dodano procedurę „Licencja Taxi\" w Department of Motor Vehicles"
+    },
+    {
+      "date": "07/23/2026",
+      "type": "add",
+      "text": "Dodano procedurę „Odnowienie licencji myśliwskiej\" w Health and Human Services"
+    },
+    {
+      "date": "07/23/2026",
+      "type": "add",
+      "text": "Dodano procedury licencji na broń (CCP), odnowienia licencji i koncesji specjalistycznych w Office of the Attorney General"
+    },
+    {
+      "date": "07/23/2026",
+      "type": "add",
+      "text": "Dodano „Działania windykacyjne\", „Archiwizację umów Velvet Bank\" i koncesje specjalistyczne (hazard, loterie) w Internal Revenue Services"
+    },
+    {
+      "date": "03/16/2026",
+      "type": "del",
+      "text": "Usunięto procedurę rejestracji podatku w Internal Revenue Services"
+    },
+    {
+      "date": "03/16/2026",
+      "type": "mod",
+      "text": "Zmieniono procedurę rejestracji przedsiębiorstwa w Governor's Office"
+    },
+    {
+      "date": "03/16/2026",
+      "type": "mod",
+      "text": "Zmieniono procedurę SALPP w Department of Motor Vehicles"
+    },
+    {
+      "date": "03/16/2026",
+      "type": "mod",
+      "text": "Zmieniono procedurę przyjęcia deklaracji podatkowej w Internal Revenue Services"
+    }
+  ]
+}

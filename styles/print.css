@@ -1,0 +1,17 @@
+@media print {
+  @page { margin: 16mm; }
+  body { background: #fff !important; color: #111827 !important; font-size: 11pt; }
+  .sidebar, .topbar, .no-print, .modal-backdrop, .palette-backdrop, .toast, .teleprompter { display: none !important; }
+  .app-shell { display: block !important; }
+  .workspace, .main-content { display: block !important; width: 100% !important; min-height: auto !important; margin: 0 !important; padding: 0 !important; }
+  .printable-procedure { display: block !important; }
+  .detail-hero, .procedure-document { border: 0 !important; box-shadow: none !important; background: #fff !important; }
+  .detail-hero { padding: 0 0 16px !important; }
+  .detail-hero h1 { color: #111827 !important; font-size: 23pt !important; }
+  .procedure-document { padding: 0 !important; }
+  .document-section { break-inside: avoid; }
+  .document-step { border-color: #d1d5db !important; }
+  .document-step__number { border-color: #9ca3af !important; background: #fff !important; color: #111827 !important; }
+  .document-note { border-color: #d1d5db !important; background: #f8fafc !important; color: #111827 !important; }
+  a { color: #111827 !important; text-decoration: underline !important; }
+}
