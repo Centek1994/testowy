@@ -64,7 +64,7 @@ export const state = {
   editMode: storage.get("sc-edithash", "") === EDIT_HASH,
   sidebarCompact: storage.get("sc-sidebar-compact", "false") === "true",
   mobileNavOpen: false,
-  palette: { open: false, query: "" },
+  palette: { open: false, query: "", selectionStart: 0, selectionEnd: 0 },
   modal: null,
   teleprompter: null,
   toast: null
@@ -233,8 +233,14 @@ export function setMobileNav(open) {
   notify();
 }
 
-export function setPalette(open, query = "") {
-  state.palette = { open: open, query: query };
+export function setPalette(open, query = "", selectionStart, selectionEnd) {
+  const fallbackPosition = String(query).length;
+  state.palette = {
+    open: open,
+    query: query,
+    selectionStart: Number.isInteger(selectionStart) ? selectionStart : fallbackPosition,
+    selectionEnd: Number.isInteger(selectionEnd) ? selectionEnd : fallbackPosition
+  };
   notify();
 }
 

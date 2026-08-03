@@ -11,7 +11,7 @@ import {
 } from "./ui/templates.js";
 
 const app = document.getElementById("app");
-let teleprompterFrame = 0;
+let teleprompterTimer = 0;
 let previousTitle = document.title;
 
 function activeView(name, department) {
@@ -294,7 +294,12 @@ function afterRender() {
   if (state.palette.open) {
     window.setTimeout(function () {
       const input = document.getElementById("palette-input");
-      if (input) input.focus();
+      if (input) {
+        input.focus();
+        const start = Math.min(input.value.length, state.palette.selectionStart);
+        const end = Math.min(input.value.length, state.palette.selectionEnd);
+        input.setSelectionRange(start, end);
+      }
     }, 0);
   }
   if (state.modal && state.modal.type === "edit") {
@@ -313,28 +318,37 @@ function afterRender() {
 }
 
 function activateTeleprompter() {
-  cancelAnimationFrame(teleprompterFrame);
+  clearInterval(teleprompterTimer);
   if (!state.teleprompter || !state.teleprompter.playing) return;
   const scroll = document.getElementById("teleprompter-scroll");
   if (!scroll) return;
   let lastTime = performance.now();
-  const tick = function (time) {
-    if (!state.teleprompter || !state.teleprompter.playing) return;
-    const elapsed = (time - lastTime) / 1000;
+  let position = scroll.scrollTop;
+  teleprompterTimer = window.setInterval(function () {
+    if (!state.teleprompter || !state.teleprompter.playing) {
+      clearInterval(teleprompterTimer);
+      return;
+    }
+    const time = performance.now();
+    const elapsed = Math.max(1 / 60, (time - lastTime) / 1000);
     lastTime = time;
-    const maxScroll = Math.max(1, scroll.scrollHeight - scroll.clientHeight);
-    scroll.scrollTop = Math.min(maxScroll, scroll.scrollTop + state.teleprompter.speed * elapsed);
-    state.teleprompter.progress = scroll.scrollTop / maxScroll;
-    const progress = document.querySelector(".teleprompter__progress i");
-    if (progress) progress.style.width = String(Math.round(state.teleprompter.progress * 100)) + "%";
-    if (scroll.scrollTop >= maxScroll) {
+    const maxScroll = scroll.scrollHeight - scroll.clientHeight;
+    if (maxScroll <= 0) {
       state.teleprompter.playing = false;
       notify();
       return;
     }
-    teleprompterFrame = requestAnimationFrame(tick);
-  };
-  teleprompterFrame = requestAnimationFrame(tick);
+    const nextPosition = Math.min(maxScroll, position + state.teleprompter.speed * elapsed);
+    position = nextPosition;
+    scroll.scrollTop = nextPosition;
+    state.teleprompter.progress = scroll.scrollTop / maxScroll;
+    const progress = document.querySelector(".teleprompter__progress i");
+    if (progress) progress.style.width = String(Math.round(state.teleprompter.progress * 100)) + "%";
+    if (nextPosition >= maxScroll) {
+      state.teleprompter.playing = false;
+      notify();
+    }
+  }, 16);
 }
 
 async function copyText(text) {
@@ -459,7 +473,7 @@ app.addEventListener("click", async function (event) {
 
 app.addEventListener("input", function (event) {
   if (event.target.id === "palette-input") {
-    setPalette(true, event.target.value);
+    setPalette(true, event.target.value, event.target.selectionStart, event.target.selectionEnd);
   }
 });
 
