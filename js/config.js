@@ -5,12 +5,13 @@
  */
 export const FIREBASE_SDK_VERSION = "12.16.0";
 export const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyCcmWV6RltKrMyJ4BQ2vulB4vTIwaK1dz8",
+  authDomain: "state-capitol-procedures.firebaseapp.com",
+  projectId: "state-capitol-procedures",
+  storageBucket: "state-capitol-procedures.firebasestorage.app",
+  messagingSenderId: "108811919605",
+  appId: "1:108811919605:web:da1f1c12ba3d0a7f78a5bc",
+  measurementId: "G-9Y35T94P90"
 };
 
 export const DEPARTMENTS = [
