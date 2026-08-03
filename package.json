@@ -1,0 +1,14 @@
+{
+  "name": "state-capitol-procedures",
+  "private": true,
+  "version": "1.0.0",
+  "description": "State Capitol procedure registry",
+  "type": "module",
+  "scripts": {
+    "install:firebase": "npm install firebase@12.16.0",
+    "firebase:emulators": "firebase emulators:start"
+  },
+  "dependencies": {
+    "firebase": "12.16.0"
+  }
+}

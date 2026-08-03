@@ -1,7 +1,17 @@
-export const DATA_FILE = "./procedury.json";
-export const GITHUB_REPO = "Centek1994/state-capitol-procedury";
-export const GITHUB_BRANCH = "main";
-export const EDIT_HASH = "8402860947e2986a67bc7b8c6fbd68760688f778f2f4c366c9bcd8dba903c590";
+/*
+ * Firebase Web App configuration is safe to expose in a browser application.
+ * Access to Firestore must be protected by firestore.rules, never by hiding
+ * these values. The application requires this configuration to load data.
+ */
+export const FIREBASE_SDK_VERSION = "12.16.0";
+export const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
 
 export const DEPARTMENTS = [
   { id: "go", name: "Governor's Office", group: "civic", short: "GO" },

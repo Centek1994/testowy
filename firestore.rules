@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isEditor() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['editor', 'admin'];
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function validProcedure() {
+      return request.resource.data.keys().hasAll([
+        'id', 'dept', 'title', 'exec', 'steps', 'notes', 'sortOrder', 'searchPrefixes'
+      ])
+        && request.resource.data.id is string
+        && request.resource.data.dept is string
+        && request.resource.data.title is string
+        && request.resource.data.exec is string
+        && request.resource.data.steps is list
+        && request.resource.data.notes is string
+        && request.resource.data.sortOrder is number
+        && request.resource.data.searchPrefixes is list;
+    }
+
+    match /procedures/{procedureId} {
+      allow read: if true;
+      allow create: if isEditor() && validProcedure() && request.resource.data.id == procedureId;
+      allow update: if isEditor()
+        && validProcedure()
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isAdmin();
+    }
+
+    match /logs/{logId} {
+      allow read: if true;
+      allow create: if isEditor()
+        && request.resource.data.type is string
+        && request.resource.data.procedureId is string
+        && request.resource.data.procedureTitle is string
+        && request.resource.data.date is string
+        && request.resource.data.time is string
+        && request.resource.data.userId is string
+        && request.resource.data.userEmail is string
+        && request.resource.data.userName is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /backups/{backupId} {
+      allow read, create, update, delete: if isAdmin();
+
+      match /procedures/{procedureId} {
+        allow read, create, update, delete: if isAdmin();
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+  }
+}

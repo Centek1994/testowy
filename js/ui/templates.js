@@ -1,5 +1,5 @@
 import { icon } from "./icons.js";
-import { departmentFor, isFavorite, state } from "../core/store.js";
+import { canDeleteProcedures, departmentFor, isFavorite, state } from "../core/store.js";
 
 export function escapeHtml(value) {
   return String(value == null ? "" : value).replace(/[&<>"']/g, function (character) {
@@ -32,6 +32,7 @@ export function button(label, action, options = {}) {
   ];
   if (options.id) attributes.push("data-id='" + escapeHtml(options.id) + "'");
   if (options.extra) attributes.push(options.extra);
+  if (options.disabled) attributes.push("disabled");
   const iconHtml = options.icon ? icon(options.icon, 15) : "";
   return "<button " + attributes.join(" ") + ">" + iconHtml + "<span>" + escapeHtml(label) + "</span></button>";
 }
@@ -84,7 +85,7 @@ export function procedureActions(procedure, compact = false) {
     : "";
   const edit = state.editMode
     ? button("Edytuj", "edit-procedure", { id: procedure.id, small: true, icon: "edit", variant: "ghost" }) +
-      button("Usuń", "confirm-delete", { id: procedure.id, small: true, icon: "trash", variant: "danger" })
+      (canDeleteProcedures() ? button("Usuń", "confirm-delete", { id: procedure.id, small: true, icon: "trash", variant: "danger" }) : "")
     : "";
   return "<div class='procedure-actions'>" +
     primary +
@@ -123,7 +124,7 @@ export function procedureDetail(procedure) {
   const ceremony = /CEREMONI/i.test(procedure.notes || "");
   const edit = state.editMode
     ? button("Edytuj", "edit-procedure", { id: procedure.id, icon: "edit", variant: "ghost" }) +
-      button("Usuń", "confirm-delete", { id: procedure.id, icon: "trash", variant: "danger" })
+      (canDeleteProcedures() ? button("Usuń", "confirm-delete", { id: procedure.id, icon: "trash", variant: "danger" }) : "")
     : "";
   return "<div class='detail-page printable-procedure'>" +
     "<div class='detail-top no-print'>" + button("Wróć", "go-back", { icon: "arrowLeft", variant: "ghost" }) + "</div>" +

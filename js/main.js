@@ -1,9 +1,10 @@
 import { DEPARTMENTS, DEPARTMENT_NOTE, ORGANIZATION } from "./config.js";
 import {
-  applyTheme, departmentsWithCounts, favoriteProcedures, findProcedure, githubEditUrl, initialize,
-  isFavorite, loadData, lock, navigate, openProcedure, procedureText, recentProcedures, removeProcedure,
-  searchProcedures, serializedData, setMobileNav, setModal, setPalette, setSearch, setSidebarCompact,
-  setTeleprompter, showToast, state, subscribe, toggleExpanded, toggleFavorite, unlock, addOrUpdateProcedure, notify
+  addOrUpdateProcedure, applyTheme, canDeleteProcedures, createBackup, departmentsWithCounts, exportProceduresAsJson,
+  favoriteProcedures, findProcedure, importProceduresFromJson, initialize, isFavorite, isSearchingProcedures, loadData,
+  lock, navigate, notify, openProcedure, procedureText, recentProcedures, refreshBackups, removeProcedure,
+  restoreBackup, searchProcedures, setMobileNav, setModal, setPalette, setSearch, setSidebarCompact,
+  setTeleprompter, showToast, state, subscribe, toggleExpanded, toggleFavorite, unlock
 } from "./core/store.js";
 import { icon } from "./ui/icons.js";
 import {
@@ -13,6 +14,10 @@ import {
 const app = document.getElementById("app");
 let teleprompterTimer = 0;
 let previousTitle = document.title;
+let procedureAutosaveTimer = 0;
+let procedureAutosaveFingerprint = "";
+let procedureAutosavePromise = null;
+let procedureFocus = null;
 
 function activeView(name, department) {
   return state.view.name === name && (!department || state.view.dept === department);
@@ -36,8 +41,10 @@ function sidebar() {
       navButton("Dashboard", "dashboard", "dashboard") +
       navButton("Ulubione", "star", "favorites", { count: state.favoriteIds.size }) +
       navButton("Ostatnio używane", "clock", "recents", { count: state.recentIds.length }) +
-      navButton("Aktualizacje", "activity", "activity", { count: state.data.log.length }) +
+      navButton("Historia zmian", "activity", "activity", { count: state.data.log.length }) +
       navButton("Struktura urzędu", "building", "organization") +
+      navButton("Panel administratora", "lock", "admin") +
+      navButton("Ustawienia", "settings", "settings") +
     "</div></div>" +
     "<div class='sidebar__section'><div class='sidebar__label'>Działy</div><div class='side-nav'>" +
       "<div class='side-nav__group'>Obywatelskie</div>" +
@@ -63,8 +70,10 @@ function viewMeta() {
     dashboard: ["Centrum dowodzenia", "Dashboard"],
     favorites: ["Twoja przestrzeń", "Ulubione"],
     recents: ["Twoja przestrzeń", "Ostatnio używane"],
-    activity: ["Rejestr zmian", "Aktualizacje"],
+    activity: ["Rejestr zmian", "Historia zmian"],
     organization: ["State Capitol", "Struktura urzędu"],
+    admin: ["Administracja", "Panel administratora"],
+    settings: ["Administracja", "Ustawienia danych"],
     search: ["Wyszukiwanie", state.query ? "Wyniki wyszukiwania" : "Szukaj procedur"]
   }[state.view.name] || ["State Capitol", "Centrum procedur"];
   return { crumb: meta[0], title: meta[1] };
@@ -72,7 +81,8 @@ function viewMeta() {
 
 function topbar() {
   const meta = viewMeta();
-  const modeLabel = state.editMode ? "Zablokuj edycję" : "Odblokuj edycję";
+  const roleLabel = state.admin.user ? state.admin.user.role : "viewer";
+  const modeLabel = state.editMode ? "Wyloguj: " + roleLabel : "Zaloguj edytora lub admina";
   return "<header class='topbar no-print'>" +
     "<div class='topbar__left'>" +
       iconButton("Otwórz nawigację", "toggle-mobile-nav", { icon: "menu", className: "mobile-only" }) +
@@ -83,7 +93,7 @@ function topbar() {
       iconButton("Odśwież dane", "refresh-data", { icon: "refresh" }) +
       iconButton(state.theme === "dark" ? "Włącz jasny motyw" : "Włącz ciemny motyw", "toggle-theme", { icon: state.theme === "dark" ? "sun" : "moon" }) +
       iconButton(modeLabel, "toggle-lock", { icon: state.editMode ? "unlock" : "lock", className: state.editMode ? "is-active" : "" }) +
-      (state.editMode ? button("Dodaj", "add-procedure", { icon: "plus", variant: "primary" }) : "") +
+      (state.editMode ? button("Panel", "navigate", { icon: "lock", extra: "data-view='admin'" }) + button("Dodaj", "add-procedure", { icon: "plus", variant: "primary" }) : "") +
     "</div></header>";
 }
 
@@ -99,7 +109,7 @@ function dashboardView() {
   const recents = recentProcedures();
   const favorites = favoriteProcedures().slice(0, 5);
   const latest = state.data.log.slice(0, 5);
-  const lastUpdated = latest[0] ? latest[0].date : "brak wpisów";
+  const lastUpdated = latest[0] ? latest[0].date + " " + latest[0].time : "brak wpisów";
   return "<section class='dashboard-view'>" +
     "<div class='page-hero'><div><div class='eyebrow'>State Capitol / operacje</div><h1>Wszystkie procedury,<br><em>zawsze pod ręką.</em></h1><p>Przejrzysta baza wiedzy dla zespołu State Capitol. Otwieraj, kopiuj, drukuj i prowadź ceremonie bez szukania po wiadomościach.</p><div class='page-hero__actions'>" +
       button("Otwórz wyszukiwarkę", "open-palette", { icon: "search", variant: "primary" }) +
@@ -121,7 +131,7 @@ function dashboardView() {
         return "<button type='button' class='department-tile " + (department.group === "legal" ? "is-legal" : "") + "' data-action='navigate' data-view='department' data-dept='" + escapeHtml(department.id) + "'><span>" + escapeHtml(department.short) + "</span><strong>" + escapeHtml(department.name) + "</strong><b>" + department.count + "</b></button>";
       }).join("") +
     "</div></section>" +
-    "<section class='dashboard-panel'><div class='panel-heading'><div><span class='section-label'>Rejestr</span><h2>Ostatnie aktualizacje</h2></div>" + button("Pełny rejestr", "navigate", { small: true, variant: "ghost", extra: "data-view='activity'" }) + "</div>" +
+    "<section class='dashboard-panel'><div class='panel-heading'><div><span class='section-label'>Rejestr</span><h2>Ostatnie zmiany</h2></div>" + button("Pełna historia", "navigate", { small: true, variant: "ghost", extra: "data-view='activity'" }) + "</div>" +
       (latest.length ? "<div class='activity-list'>" + latest.map(activityItem).join("") + "</div>" : emptyInline("Brak wpisów w rejestrze zmian.", "", "")) +
     "</section></section>";
 }
@@ -157,22 +167,23 @@ function titledListView(title, eyebrow, procedures, emptyTitle, emptyText) {
 
 function searchView() {
   const results = searchProcedures(state.query);
+  const searching = isSearchingProcedures(state.query);
   return "<section class='list-view'><header class='view-heading'><div><div class='eyebrow'>Wyszukiwanie</div><h1>Wyniki dla „" + escapeHtml(state.query) + "”</h1><p>" + results.length + " " + (results.length === 1 ? "dopasowanie" : "dopasowań") + " w tytułach, krokach, uwagach i działach.</p></div>" + button("Zmień zapytanie", "open-palette", { icon: "search" }) + "</header>" +
-    (results.length ? "<div class='procedure-list'>" + results.map(function (procedure) {
+    (searching ? emptyState("Szukam procedur", "Przeszukuję kolekcję procedures w Cloud Firestore.", "search") : results.length ? "<div class='procedure-list'>" + results.map(function (procedure) {
       return procedureCard(procedure, { showDepartment: true, expanded: state.expanded.has(procedure.id) });
     }).join("") : emptyState("Brak wyników", "Spróbuj krótszej frazy lub wyszukaj po nazwie działu.", "search", button("Wyczyść wyszukiwanie", "clear-search", { icon: "close" }))) +
     "</section>";
 }
 
 function activityItem(entry) {
-  const type = entry.type === "add" ? "Dodano" : entry.type === "del" ? "Usunięto" : "Zmieniono";
-  const className = entry.type === "add" ? "activity-item--add" : entry.type === "del" ? "activity-item--del" : "activity-item--mod";
-  return "<div class='activity-item " + className + "'><span class='activity-item__type'>" + escapeHtml(type) + "</span><span class='activity-item__date'>" + escapeHtml(entry.date || "—") + "</span><span>" + escapeHtml(entry.text || "") + "</span></div>";
+  const type = entry.type === "create" ? "Dodano" : entry.type === "delete" ? "Usunięto" : "Zmieniono";
+  const className = entry.type === "create" ? "activity-item--add" : entry.type === "delete" ? "activity-item--del" : "activity-item--mod";
+  return "<article class='activity-item " + className + "'><span class='activity-item__type'>" + escapeHtml(type) + "</span><div class='activity-item__procedure'><strong>" + escapeHtml(entry.procedureTitle || "Nieznana procedura") + "</strong><span>" + escapeHtml(entry.user || "Nieznany użytkownik") + "</span></div><time class='activity-item__date'>" + escapeHtml(entry.date || "—") + "<span>" + escapeHtml(entry.time || "—") + "</span></time></article>";
 }
 
 function activityView() {
-  return "<section class='list-view'><header class='view-heading'><div><div class='eyebrow'>Rejestr zmian</div><h1>Aktualizacje</h1><p>Historia zmian opublikowanych w pliku procedur.</p></div></header>" +
-    (state.data.log.length ? "<div class='activity-list activity-list--full'>" + state.data.log.map(activityItem).join("") + "</div>" : emptyState("Brak wpisów", "Zmiany w procedurach pojawią się tutaj automatycznie.", "activity")) +
+  return "<section class='list-view'><header class='view-heading'><div><div class='eyebrow'>Cloud Firestore / logs</div><h1>Historia zmian</h1><p>Automatyczny rejestr operacji wykonanych na procedurach.</p></div></header>" +
+    (state.data.log.length ? "<div class='activity-list activity-list--full'><div class='activity-list__head'><span>Operacja</span><span>Procedura i użytkownik</span><span>Data i godzina</span></div>" + state.data.log.map(activityItem).join("") + "</div>" : emptyState("Brak wpisów", "Każda zmiana procedury utworzy wpis w kolekcji logs.", "activity")) +
     "</section>";
 }
 
@@ -182,15 +193,70 @@ function organizationView() {
     "<article class='organization-card organization-card--legal'><div class='organization-card__icon'>" + icon("lock", 20) + "</div><span class='section-label'>Działy prawno-śledcze</span><h2>Zakres kompetencji</h2><p>Role odpowiedzialne za procedury prawno-śledcze w poszczególnych jednostkach.</p><ul>" + ORGANIZATION.legal.map(function (item) { return "<li>" + escapeHtml(item) + "</li>"; }).join("") + "</ul></article></div></section>";
 }
 
+function administratorProcedure(procedure) {
+  const department = departmentsWithCounts().find(function (item) { return item.id === procedure.dept; });
+  const stepCount = Array.isArray(procedure.steps) ? procedure.steps.length : 0;
+  return "<article class='admin-procedure'><div class='admin-procedure__main'><span class='admin-procedure__id'>" + escapeHtml(procedure.id) + "</span><div><h2>" + escapeHtml(procedure.title) + "</h2><p>" + escapeHtml(procedure.exec || "Brak wskazanego wykonawcy") + "</p></div></div><div class='admin-procedure__meta'>" +
+    departmentTag(department || { name: procedure.dept || "Nieprzypisany" }) + "<span>" + stepCount + " " + (stepCount === 1 ? "krok" : stepCount < 5 ? "kroki" : "kroków") + "</span></div><div class='admin-procedure__actions'>" +
+    button("Edytuj", "edit-procedure", { id: procedure.id, small: true, icon: "edit", variant: "ghost" }) +
+    (canDeleteProcedures() ? button("Usuń", "confirm-delete", { id: procedure.id, small: true, icon: "trash", variant: "danger" }) : "") +
+    "</div></article>";
+}
+
+function adminView() {
+  if (state.admin.status === "checking") {
+    return "<section class='admin-view'><div class='admin-gate'><div class='loading-mark'>" + icon("lock", 22) + "</div><h1>Sprawdzam uprawnienia</h1><p>Łączę się z Firebase Authentication.</p></div></section>";
+  }
+  if (!state.editMode) {
+    const message = state.admin.status === "viewer"
+      ? "Rola viewer pozwala wyłącznie przeglądać procedury i historię zmian."
+      : "Zaloguj konto Firebase z rolą editor lub admin, aby zarządzać procedurami.";
+    return "<section class='admin-view'><div class='admin-gate'><div class='admin-gate__icon'>" + icon("lock", 24) + "</div><span class='section-label'>Dostęp chroniony</span><h1>Panel administratora</h1><p>" + escapeHtml(message) + "</p>" + button("Zaloguj administratora", "open-admin-login", { icon: "unlock", variant: "primary" }) + "</div></section>";
+  }
+
+  return "<section class='admin-view'><header class='view-heading'><div><div class='eyebrow'>Cloud Firestore</div><h1>Panel administratora</h1><p>Zarządzaj procedurami bez odświeżania strony. Zmiany synchronizują się automatycznie.</p></div>" + button("Dodaj procedurę", "add-procedure", { icon: "plus", variant: "primary" }) + "</header>" +
+    "<div class='admin-status'><span>" + icon("check", 15) + " Połączono jako " + escapeHtml(state.admin.user.email || state.admin.user.uid) + "</span><b>Rola: " + escapeHtml(state.admin.user.role) + " · " + state.data.procedures.length + " procedur</b></div>" +
+    (state.data.procedures.length ? "<div class='admin-procedure-list'>" + state.data.procedures.map(administratorProcedure).join("") + "</div>" : emptyState("Brak procedur", "Dodaj pierwszą procedurę do kolekcji procedures.", "command", button("Dodaj procedurę", "add-procedure", { icon: "plus", variant: "primary" }))) +
+    "</section>";
+}
+
+function backupItem(backup) {
+  return "<article class='backup-item'><div><strong>" + escapeHtml(backup.name) + "</strong><span>" + escapeHtml(backup.procedureCount) + " procedur · " + escapeHtml(backup.createdByName) + "</span></div><time>" + escapeHtml(backup.date) + "<br>" + escapeHtml(backup.time) + "</time>" +
+    button("Odzyskaj", "restore-backup", { id: backup.id, small: true, icon: "refresh", variant: "ghost" }) + "</article>";
+}
+
+function settingsView() {
+  const isAdmin = canDeleteProcedures();
+  const backups = state.backups.items || [];
+  const backupBusy = state.backups.status === "creating" || state.backups.status === "loading";
+  const backupStatus = state.backups.status === "creating" ? "Tworzenie kopii w Firestore…" : state.backups.status === "loading" ? "Pobieranie kopii…" : "Kopie przechowują pełny stan kolekcji procedures.";
+  const adminTools = isAdmin
+    ? "<section class='settings-card settings-card--wide'><div class='settings-card__icon'>" + icon("refresh", 19) + "</div><div class='settings-card__content'><span class='section-label'>Cloud Firestore</span><h2>Kopie zapasowe</h2><p>Utwórz niezależny snapshot procedur. Odzyskanie przywraca dokładny stan wybranej kopii i zapisuje operacje w historii zmian.</p><div class='settings-card__actions'>" +
+      button(backupBusy ? "Pracuję…" : "Utwórz kopię", "create-backup", { icon: "plus", variant: "primary", disabled: backupBusy }) +
+      button("Odśwież listę", "refresh-backups", { icon: "refresh", disabled: backupBusy }) +
+      "</div><span class='settings-card__hint'>" + escapeHtml(backupStatus) + "</span>" +
+      (backups.length ? "<div class='backup-list'>" + backups.map(backupItem).join("") + "</div>" : "<div class='backup-empty'>Nie utworzono jeszcze żadnej kopii zapasowej.</div>") +
+      "</div></section>"
+    : "<section class='settings-card settings-card--wide settings-card--locked'><div class='settings-card__icon'>" + icon("lock", 19) + "</div><div class='settings-card__content'><span class='section-label'>Dostęp administratora</span><h2>Import i kopie Firestore</h2><p>Import danych, tworzenie kopii oraz ich odzyskiwanie wymagają roli <b>admin</b>. Eksport jest dostępny dla każdego użytkownika.</p></div></section>";
+
+  return "<section class='settings-view'><header class='view-heading'><div><div class='eyebrow'>Dane aplikacji</div><h1>Ustawienia</h1><p>Przenoś procedury między środowiskami i zarządzaj bezpiecznymi kopiami danych.</p></div></header><div class='settings-grid'>" +
+    "<section class='settings-card'><div class='settings-card__icon'>" + icon("copy", 19) + "</div><div class='settings-card__content'><span class='section-label'>Archiwum lokalne</span><h2>Eksport do JSON</h2><p>Pobierz aktualny, przenośny zapis wszystkich procedur bez danych logowania ani historii zmian.</p><div class='settings-card__actions'>" + button("Pobierz JSON", "export-procedures", { icon: "copy", variant: "primary" }) + "</div></div></section>" +
+    (isAdmin ? "<section class='settings-card'><div class='settings-card__icon'>" + icon("plus", 19) + "</div><div class='settings-card__content'><span class='section-label'>Cloud Firestore</span><h2>Import z JSON</h2><p>Wczytaj wcześniej wyeksportowany plik. Identyczne procedury są pomijane; nowe i zmienione są zapisywane bez odświeżania strony.</p><input id='import-procedures-file' class='visually-hidden' type='file' accept='application/json,.json'><div class='settings-card__actions'>" + button("Wybierz plik JSON", "select-import-file", { icon: "plus" }) + "</div></div></section>" : "") +
+    adminTools +
+    "</div></section>";
+}
+
 function mainView() {
   if (state.status === "loading") return "<section class='loading-view'><div class='loading-mark'>" + icon("building", 24) + "</div><h1>Ładowanie rejestru</h1><p>Pobieram najnowszą wersję procedur…</p></section>";
-  if (state.status === "error") return emptyState("Nie udało się wczytać rejestru", "Upewnij się, że aplikacja jest uruchomiona przez serwer HTTP oraz że procedury.json znajduje się obok app.html.", "warning", button("Spróbuj ponownie", "refresh-data", { icon: "refresh", variant: "primary" }));
+  if (state.status === "error") return emptyState("Nie udało się wczytać rejestru", "Sprawdź konfigurację Firebase, reguły Cloud Firestore oraz połączenie z internetem.", "warning", button("Spróbuj ponownie", "refresh-data", { icon: "refresh", variant: "primary" }));
   if (state.view.name === "dashboard") return dashboardView();
   if (state.view.name === "department") return departmentView();
   if (state.view.name === "favorites") return titledListView("Ulubione", "Twoja przestrzeń", favoriteProcedures(), "Brak ulubionych", "Oznacz gwiazdką procedury, które chcesz mieć zawsze pod ręką.");
   if (state.view.name === "recents") return titledListView("Ostatnio używane", "Twoja przestrzeń", recentProcedures(), "Brak ostatnio używanych", "Otwórz procedurę, a pojawi się w tej sekcji.");
   if (state.view.name === "activity") return activityView();
   if (state.view.name === "organization") return organizationView();
+  if (state.view.name === "admin") return adminView();
+  if (state.view.name === "settings") return settingsView();
   if (state.view.name === "search") return searchView();
   if (state.view.name === "procedure") {
     const procedure = findProcedure(state.view.id);
@@ -203,6 +269,7 @@ function palette() {
   if (!state.palette.open) return "";
   const query = state.palette.query;
   const results = query.trim() ? searchProcedures(query).slice(0, 9) : [];
+  const searching = query.trim() && isSearchingProcedures(query);
   const commands = [
     { label: "Przejdź do dashboardu", meta: "Widok główny", icon: "dashboard", action: "palette-navigate", view: "dashboard" },
     { label: "Otwórz ulubione", meta: String(state.favoriteIds.size) + " procedur", icon: "star", action: "palette-navigate", view: "favorites" },
@@ -217,7 +284,7 @@ function palette() {
     return "<button type='button' class='palette__item' data-action='palette-procedure' data-id='" + escapeHtml(procedure.id) + "'><span class='palette__item-icon'>" + icon("command", 16) + "</span><span><span class='palette__item-title'>" + escapeHtml(procedure.title) + "</span><span class='palette__item-meta'>" + escapeHtml(department ? department.name : procedure.dept) + " · " + escapeHtml(procedure.exec || "procedura") + "</span></span></button>";
   }).join("");
   return "<div class='palette-backdrop' data-action='close-palette' data-backdrop='true'><section class='palette' role='dialog' aria-modal='true' aria-label='Szybkie wyszukiwanie'><div class='palette__search'>" + icon("search", 18) + "<input id='palette-input' type='search' autocomplete='off' placeholder='Szukaj procedury lub polecenia…' value='" + escapeHtml(query) + "'><kbd>Esc</kbd></div><div class='palette__results'>" +
-    (query.trim() ? "<div class='palette__label'>Procedury</div>" + (resultHtml || "<div class='palette__empty'>Nie znaleziono procedur dla tego zapytania.</div>") : "<div class='palette__label'>Polecenia</div>" + commandHtml + "<div class='palette__label'>Podpowiedź</div><div class='palette__empty'>Wpisz fragment tytułu, działu, kroku albo uwagi procedury.</div>") +
+    (query.trim() ? "<div class='palette__label'>Procedury</div>" + (searching ? "<div class='palette__empty'>Przeszukuję Cloud Firestore…</div>" : resultHtml || "<div class='palette__empty'>Nie znaleziono procedur dla tego zapytania.</div>") : "<div class='palette__label'>Polecenia</div>" + commandHtml + "<div class='palette__label'>Podpowiedź</div><div class='palette__empty'>Wpisz fragment tytułu, działu, kroku albo uwagi procedury.</div>") +
     "</div></section></div>";
 }
 
@@ -225,8 +292,8 @@ function modal() {
   if (!state.modal) return "";
   if (state.modal.type === "edit") return editModal(state.modal.id);
   if (state.modal.type === "delete") return deleteModal(state.modal.id);
-  if (state.modal.type === "github") return githubModal();
-  if (state.modal.type === "password") return passwordModal();
+  if (state.modal.type === "saved") return savedModal();
+  if (state.modal.type === "admin-login") return adminLoginModal();
   return "";
 }
 
@@ -242,29 +309,122 @@ function departmentOptions(selected) {
   }).join("");
 }
 
+function stepEditorRow(value, index) {
+  return "<div class='step-editor__row' data-step-row><span class='step-editor__number' data-step-number>" + (index + 1) + "</span><input data-step-input type='text' value='" + escapeHtml(value) + "' placeholder='Opis kroku " + (index + 1) + "' aria-label='Krok " + (index + 1) + "'><div class='step-editor__actions'><button type='button' class='step-editor__button' data-action='step-move-up' aria-label='Przenieś krok wyżej'>↑</button><button type='button' class='step-editor__button' data-action='step-move-down' aria-label='Przenieś krok niżej'>↓</button><button type='button' class='step-editor__button step-editor__button--danger' data-action='step-remove' aria-label='Usuń krok'>×</button></div></div>";
+}
+
 function editModal(id) {
   const procedure = id ? findProcedure(id) : null;
   const title = procedure ? "Edytuj procedurę" : "Dodaj procedurę";
   const values = procedure || { title: "", dept: state.view.name === "department" ? state.view.dept : "go", exec: "wszystkie działy State Capitol", steps: [], notes: "" };
-  const body = "<form id='procedure-form' class='form-grid' data-form='procedure'><input type='hidden' name='id' value='" + escapeHtml(procedure ? procedure.id : "") + "'><div class='field'><label for='form-title'>Nazwa procedury</label><input id='form-title' required name='title' value='" + escapeHtml(values.title) + "' placeholder='Np. Wydanie dokumentu tożsamości'></div><div class='field'><label for='form-dept'>Dział zarządzający</label><select id='form-dept' name='dept'>" + departmentOptions(values.dept) + "</select></div><div class='field'><label for='form-exec'>Działy wykonujące</label><input id='form-exec' name='exec' value='" + escapeHtml(values.exec || "") + "'></div><div class='field'><label for='form-steps'>Kroki procedury</label><textarea id='form-steps' name='steps' placeholder='Jeden krok w każdej linii'>" + escapeHtml((values.steps || []).join("\n")) + "</textarea><span class='field__hint'>Każda linia zostanie jednym krokiem. Numerację można pominąć.</span></div><div class='field'><label for='form-notes'>Uwagi i przepisy</label><textarea id='form-notes' name='notes' placeholder='Informacje dodatkowe, opłaty i akty prawne'>" + escapeHtml(values.notes || "") + "</textarea></div></form>";
-  return modalShell(title, body, button("Anuluj", "close-modal", { variant: "ghost" }) + "<button class='button button--primary' type='submit' form='procedure-form'>" + icon("check", 15) + "<span>Zapisz i przygotuj JSON</span></button>");
+  const steps = values.steps && values.steps.length ? values.steps : [""];
+  const stepRows = steps.map(stepEditorRow).join("");
+  const saveHint = procedure
+    ? "<p id='procedure-autosave-status' class='form-save-status' aria-live='polite'>Zmiany zapisują się automatycznie.</p>"
+    : "<p class='form-save-status'>Nową procedurę zatwierdź przyciskiem „Zapisz w Firestore”.</p>";
+  const body = "<form id='procedure-form' class='form-grid' data-form='procedure'><input type='hidden' name='id' value='" + escapeHtml(procedure ? procedure.id : "") + "'><div class='field'><label for='form-title'>Nazwa procedury</label><input id='form-title' required name='title' value='" + escapeHtml(values.title) + "' placeholder='Np. Wydanie dokumentu tożsamości'></div><div class='field'><label for='form-dept'>Dział zarządzający</label><select id='form-dept' name='dept'>" + departmentOptions(values.dept) + "</select></div><div class='field'><label for='form-exec'>Działy wykonujące</label><input id='form-exec' name='exec' value='" + escapeHtml(values.exec || "") + "'></div><div class='field'><div class='field__label-row'><label>Kroki procedury</label><button type='button' class='text-button' data-action='step-add'>" + icon("plus", 14) + " Dodaj krok</button></div><div id='procedure-step-list' class='step-editor__list'>" + stepRows + "</div><span class='field__hint'>Zmieniaj kolejność strzałkami. Puste kroki nie zostaną zapisane.</span></div><div class='field'><label for='form-notes'>Uwagi i przepisy</label><textarea id='form-notes' name='notes' placeholder='Informacje dodatkowe, opłaty i akty prawne'>" + escapeHtml(values.notes || "") + "</textarea></div>" + saveHint + "</form>";
+  const submitLabel = "Zapisz w Firestore";
+  return modalShell(title, body, button("Anuluj", "close-modal", { variant: "ghost" }) + "<button class='button button--primary' type='submit' form='procedure-form'>" + icon("check", 15) + "<span>" + submitLabel + "</span></button>");
+}
+
+function procedureFieldsFromForm(form) {
+  const fields = Object.fromEntries(new FormData(form).entries());
+  fields.steps = Array.from(form.querySelectorAll("[data-step-input]")).map(function (input) { return input.value; });
+  return fields;
+}
+
+function procedureFingerprint(fields) {
+  return JSON.stringify({
+    title: String(fields.title || "").trim(),
+    dept: String(fields.dept || "").trim(),
+    exec: String(fields.exec || "").trim(),
+    steps: (fields.steps || []).map(function (step) { return String(step || "").trim(); }).filter(Boolean),
+    notes: String(fields.notes || "").trim()
+  });
+}
+
+function setProcedureAutosaveStatus(message, isError = false) {
+  const status = document.getElementById("procedure-autosave-status");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle("is-error", isError);
+}
+
+function rememberProcedureFocus(target) {
+  const form = target.closest("#procedure-form");
+  if (!form) return;
+  const steps = Array.from(form.querySelectorAll("[data-step-input]"));
+  procedureFocus = {
+    name: target.name || "",
+    stepIndex: steps.indexOf(target),
+    start: Number.isInteger(target.selectionStart) ? target.selectionStart : null,
+    end: Number.isInteger(target.selectionEnd) ? target.selectionEnd : null
+  };
+}
+
+function focusProcedureForm() {
+  const form = document.getElementById("procedure-form");
+  if (!form) return;
+  let input = null;
+  if (procedureFocus && procedureFocus.stepIndex >= 0) {
+    input = form.querySelectorAll("[data-step-input]")[procedureFocus.stepIndex] || null;
+  } else if (procedureFocus && procedureFocus.name) {
+    input = form.querySelector("[name='" + procedureFocus.name + "']");
+  }
+  input = input || document.getElementById("form-title");
+  if (!input) return;
+  input.focus();
+  if (procedureFocus && Number.isInteger(procedureFocus.start) && typeof input.setSelectionRange === "function") {
+    const end = Number.isInteger(procedureFocus.end) ? procedureFocus.end : procedureFocus.start;
+    input.setSelectionRange(Math.min(input.value.length, procedureFocus.start), Math.min(input.value.length, end));
+  }
+}
+
+function scheduleProcedureAutosave(form) {
+  const id = String(new FormData(form).get("id") || "");
+  if (!id || !state.editMode) return;
+  clearTimeout(procedureAutosaveTimer);
+  setProcedureAutosaveStatus("Zmiany oczekują na zapis…");
+  procedureAutosaveTimer = window.setTimeout(async function () {
+    const fields = procedureFieldsFromForm(form);
+    const fingerprint = procedureFingerprint(fields);
+    if (fingerprint === procedureAutosaveFingerprint) {
+      setProcedureAutosaveStatus("Wszystkie zmiany są zapisane.");
+      return;
+    }
+    if (!String(fields.title || "").trim() || !String(fields.dept || "").trim()) {
+      setProcedureAutosaveStatus("Uzupełnij nazwę i dział, aby zapisać zmiany.", true);
+      return;
+    }
+    try {
+      setProcedureAutosaveStatus("Zapisuję w Firestore…");
+      procedureAutosavePromise = addOrUpdateProcedure(fields, id);
+      await procedureAutosavePromise;
+      procedureAutosaveFingerprint = fingerprint;
+      setProcedureAutosaveStatus("Wszystkie zmiany są zapisane.");
+    } catch (error) {
+      setProcedureAutosaveStatus(error.message || "Nie udało się zapisać zmian.", true);
+    } finally {
+      procedureAutosavePromise = null;
+    }
+  }, 650);
 }
 
 function deleteModal(id) {
   const procedure = findProcedure(id);
-  const body = "<p>Usunięcie zostanie zastosowane w bieżącej sesji. Aby opublikować zmianę, skopiuj wygenerowany JSON i zatwierdź go na GitHubie.</p><div class='modal__notice'><b>Do usunięcia:</b> " + escapeHtml(procedure ? procedure.title : "Nieznana procedura") + "</div>";
+  const description = "Usunięcie zostanie zapisane w Cloud Firestore.";
+  const body = "<p>" + description + "</p><div class='modal__notice'><b>Do usunięcia:</b> " + escapeHtml(procedure ? procedure.title : "Nieznana procedura") + "</div>";
   return modalShell("Usunąć procedurę?", body, button("Anuluj", "close-modal", { variant: "ghost" }) + button("Usuń procedurę", "delete-procedure", { id: id, icon: "trash", variant: "danger" }), true);
 }
 
-function githubModal() {
-  const body = "<p class='modal-copy'>Zmiany są gotowe. Skopiuj poniższą zawartość, otwórz plik <b>procedury.json</b> na GitHubie, zastąp całą jego treść i wybierz <b>Commit changes</b>.</p><div class='field'><label for='github-json'>Zaktualizowany procedury.json</label><textarea id='github-json' class='code-area' readonly>" + escapeHtml(serializedData()) + "</textarea></div>";
-  const footer = button("Zamknij", "close-modal", { variant: "ghost" }) + button("Kopiuj JSON", "copy-json", { icon: "copy" }) + "<a class='button button--primary' href='" + escapeHtml(githubEditUrl()) + "' target='_blank' rel='noopener noreferrer'>" + icon("external", 15) + "<span>Otwórz GitHub</span></a>";
-  return modalShell("Opublikuj zmiany", body, footer, false, "Aplikacja nie zapisuje pliku bezpośrednio na serwerze.");
+function savedModal() {
+  const body = "<p class='modal-copy'>Zmiany zostały zapisane w Cloud Firestore i będą widoczne dla wszystkich użytkowników aplikacji po synchronizacji w czasie rzeczywistym.</p>";
+  return modalShell("Zmiany zapisane", body, button("Zamknij", "close-modal", { variant: "primary" }), true);
 }
 
-function passwordModal() {
-  const body = "<form id='password-form' class='form-grid' data-form='password'><p class='modal-copy'>Dodawanie, edycja i usuwanie procedur wymaga autoryzacji.</p><div class='field'><label for='edit-password'>Hasło</label><input id='edit-password' required type='password' name='password' autocomplete='current-password' placeholder='Wpisz hasło'><span class='field__hint'>Autoryzacja jest zapisywana lokalnie w tej przeglądarce.</span></div></form>";
-  return modalShell("Tryb edycji", body, button("Anuluj", "close-modal", { variant: "ghost" }) + "<button class='button button--primary' type='submit' form='password-form'>" + icon("unlock", 15) + "<span>Odblokuj</span></button>", true);
+function adminLoginModal() {
+  const body = "<form id='admin-login-form' class='form-grid' data-form='admin-login'><p class='modal-copy'>Zaloguj się kontem Firebase Authentication z przypisaną rolą <b>editor</b> lub <b>admin</b>.</p><div class='field'><label for='admin-email'>Adres e-mail</label><input id='admin-email' required type='email' name='email' autocomplete='email' placeholder='admin@example.com'></div><div class='field'><label for='admin-password'>Hasło</label><input id='admin-password' required type='password' name='password' autocomplete='current-password' placeholder='Wpisz hasło'><span class='field__hint'>W Firebase Authentication musi być włączony dostawca e-mail i hasło.</span></div></form>";
+  return modalShell("Logowanie administratora", body, button("Anuluj", "close-modal", { variant: "ghost" }) + "<button class='button button--primary' type='submit' form='admin-login-form'>" + icon("unlock", 15) + "<span>Zaloguj i otwórz panel</span></button>", true);
 }
 
 function teleprompter() {
@@ -304,17 +464,79 @@ function afterRender() {
   }
   if (state.modal && state.modal.type === "edit") {
     window.setTimeout(function () {
-      const input = document.getElementById("form-title");
-      if (input) input.focus();
+      const form = document.getElementById("procedure-form");
+      if (form && new FormData(form).get("id")) {
+        procedureAutosaveFingerprint = procedureFingerprint(procedureFieldsFromForm(form));
+      }
+      focusProcedureForm();
     }, 0);
   }
-  if (state.modal && state.modal.type === "password") {
+  if (state.modal && state.modal.type === "admin-login") {
     window.setTimeout(function () {
-      const input = document.getElementById("edit-password");
+      const input = document.getElementById("admin-email");
       if (input) input.focus();
     }, 0);
   }
   activateTeleprompter();
+}
+
+function refreshStepNumbers(list) {
+  Array.from(list.querySelectorAll("[data-step-row]")).forEach(function (row, index) {
+    const number = row.querySelector("[data-step-number]");
+    const input = row.querySelector("[data-step-input]");
+    if (number) number.textContent = String(index + 1);
+    if (input) {
+      input.setAttribute("aria-label", "Krok " + String(index + 1));
+      input.setAttribute("placeholder", "Opis kroku " + String(index + 1));
+    }
+  });
+}
+
+function appendStepRow(list) {
+  const template = document.createElement("template");
+  template.innerHTML = stepEditorRow("", list.querySelectorAll("[data-step-row]").length);
+  const row = template.content.firstElementChild;
+  list.append(row);
+  refreshStepNumbers(list);
+  const input = row.querySelector("[data-step-input]");
+  if (input) input.focus();
+}
+
+function handleStepEditorAction(action, element) {
+  const field = element.closest(".field");
+  const list = element.closest(".step-editor__list") || (field && field.querySelector(".step-editor__list"));
+  const form = element.closest("#procedure-form");
+  if (!list) return;
+  if (action === "step-add") {
+    appendStepRow(list);
+    const rows = Array.from(list.querySelectorAll("[data-step-row]"));
+    procedureFocus = { name: "", stepIndex: rows.length - 1, start: 0, end: 0 };
+    if (form) scheduleProcedureAutosave(form);
+    return;
+  }
+
+  const row = element.closest("[data-step-row]");
+  if (!row) return;
+  if (action === "step-remove") {
+    const rows = list.querySelectorAll("[data-step-row]");
+    if (rows.length === 1) {
+      const input = row.querySelector("[data-step-input]");
+      if (input) input.value = "";
+    } else row.remove();
+  }
+  if (action === "step-move-up" && row.previousElementSibling) {
+    list.insertBefore(row, row.previousElementSibling);
+  }
+  if (action === "step-move-down" && row.nextElementSibling) {
+    list.insertBefore(row.nextElementSibling, row);
+  }
+  refreshStepNumbers(list);
+  const input = row.querySelector("[data-step-input]");
+  if (input) {
+    input.focus();
+    procedureFocus = { name: "", stepIndex: Array.from(list.querySelectorAll("[data-step-row]")).indexOf(row), start: 0, end: 0 };
+  }
+  if (form) scheduleProcedureAutosave(form);
 }
 
 function activateTeleprompter() {
@@ -368,6 +590,20 @@ async function copyText(text) {
   }
 }
 
+function downloadProceduresJson() {
+  const exported = exportProceduresAsJson();
+  const blob = new Blob([JSON.stringify(exported, null, 2) + "\n"], { type: "application/json" });
+  const link = document.createElement("a");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  link.href = URL.createObjectURL(blob);
+  link.download = "procedures-" + timestamp + ".json";
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 0);
+}
+
 function closeOverlays() {
   if (state.teleprompter) {
     setTeleprompter(null);
@@ -395,7 +631,13 @@ app.addEventListener("click", async function (event) {
   const action = element.dataset.action;
   const id = element.dataset.id;
   if (action === "navigate") {
-    navigate(element.dataset.dept ? { name: "department", dept: element.dataset.dept } : { name: element.dataset.view });
+    const nextView = element.dataset.dept ? { name: "department", dept: element.dataset.dept } : { name: element.dataset.view };
+    navigate(nextView);
+    if (nextView.name === "settings" && canDeleteProcedures()) {
+      refreshBackups().catch(function (error) {
+        showToast(error.message || "Nie udało się pobrać kopii zapasowych.", "error");
+      });
+    }
   } else if (action === "palette-navigate") {
     setPalette(false);
     navigate({ name: element.dataset.view });
@@ -422,35 +664,94 @@ app.addEventListener("click", async function (event) {
   } else if (action === "refresh-data") {
     await loadData();
     showToast(state.status === "ready" ? "Rejestr został odświeżony." : "Nie udało się odświeżyć danych.", state.status === "ready" ? "success" : "error");
+  } else if (action === "export-procedures") {
+    downloadProceduresJson();
+    showToast("Pobrano eksport procedur w formacie JSON.", "success");
+  } else if (action === "select-import-file") {
+    const fileInput = document.getElementById("import-procedures-file");
+    if (fileInput) fileInput.click();
+  } else if (action === "refresh-backups") {
+    try {
+      await refreshBackups();
+      showToast("Lista kopii zapasowych została odświeżona.", "success");
+    } catch (error) {
+      showToast(error.message || "Nie udało się odświeżyć kopii zapasowych.", "error");
+    }
+  } else if (action === "create-backup") {
+    try {
+      const backup = await createBackup();
+      showToast("Utworzono kopię „" + backup.name + "”.", "success");
+    } catch (error) {
+      showToast(error.message || "Nie udało się utworzyć kopii zapasowej.", "error");
+    }
+  } else if (action === "restore-backup") {
+    const selected = state.backups.items.find(function (backup) { return backup.id === id; });
+    const accepted = window.confirm("Odzyskać kopię „" + (selected ? selected.name : "zapasową") + "”? Bieżące procedury zostaną zastąpione jej stanem. Operacji nie można cofnąć automatycznie.");
+    if (!accepted) return;
+    try {
+      const result = await restoreBackup(id);
+      showToast("Odzyskano kopię: dodano " + result.created + ", zmieniono " + result.updated + ", usunięto " + result.deleted + ".", "success");
+    } catch (error) {
+      showToast(error.message || "Nie udało się odzyskać kopii zapasowej.", "error");
+    }
   } else if (action === "toggle-lock") {
     if (state.editMode) {
-      lock();
-      showToast("Tryb edycji został zablokowany.", "success");
-    } else setModal({ type: "password" });
+      try {
+        await lock();
+        showToast("Administrator został wylogowany.", "success");
+      } catch (error) {
+        showToast(error.message || "Nie udało się wylogować administratora.", "error");
+      }
+    } else setModal({ type: "admin-login" });
+  } else if (action === "open-admin-login") {
+    setModal({ type: "admin-login" });
   } else if (action === "add-procedure") {
+    if (!state.editMode) {
+      setModal({ type: "admin-login" });
+      return;
+    }
     setPalette(false);
+    procedureFocus = null;
+    procedureAutosaveFingerprint = "";
     setModal({ type: "edit", id: "" });
   } else if (action === "edit-procedure") {
-    setModal({ type: "edit", id: id });
+    if (state.editMode) {
+      procedureFocus = null;
+      procedureAutosaveFingerprint = "";
+      setModal({ type: "edit", id: id });
+    }
+    else setModal({ type: "admin-login" });
   } else if (action === "confirm-delete") {
-    setModal({ type: "delete", id: id });
+    if (canDeleteProcedures()) setModal({ type: "delete", id: id });
+    else if (state.editMode) showToast("Usuwanie procedur jest dostępne tylko dla roli admin.", "error");
+    else setModal({ type: "admin-login" });
   } else if (action === "delete-procedure") {
+    if (!canDeleteProcedures()) {
+      setModal(null);
+      showToast("Usuwanie procedur jest dostępne tylko dla roli admin.", "error");
+      return;
+    }
     const removed = findProcedure(id);
-    if (removed && removeProcedure(id)) {
+    try {
+      if (removed && await removeProcedure(id)) {
       state.view = { name: "department", dept: removed.dept || "go" };
-      state.modal = { type: "github" };
+      state.modal = { type: "saved" };
       notify();
-      showToast("Procedura została usunięta. Przygotowano JSON.", "success");
+      showToast("Procedura została usunięta w Firestore.", "success");
+      }
+    } catch (error) {
+      showToast(error.message || "Nie udało się usunąć procedury.", "error");
     }
   } else if (action === "close-modal") {
+    clearTimeout(procedureAutosaveTimer);
+    procedureFocus = null;
     setModal(null);
+  } else if (action.indexOf("step-") === 0) {
+    handleStepEditorAction(action, element);
   } else if (action === "copy-procedure") {
     const procedure = findProcedure(id);
     const copied = procedure && await copyText(procedureText(procedure));
     showToast(copied ? "Skopiowano procedurę do schowka." : "Nie udało się skopiować procedury.", copied ? "success" : "error");
-  } else if (action === "copy-json") {
-    const copied = await copyText(serializedData());
-    showToast(copied ? "Skopiowano JSON do schowka." : "Nie udało się skopiować JSON-a.", copied ? "success" : "error");
   } else if (action === "print-procedure") {
     window.print();
   } else if (action === "go-back") {
@@ -474,6 +775,36 @@ app.addEventListener("click", async function (event) {
 app.addEventListener("input", function (event) {
   if (event.target.id === "palette-input") {
     setPalette(true, event.target.value, event.target.selectionStart, event.target.selectionEnd);
+    return;
+  }
+  const form = event.target.closest("#procedure-form[data-form='procedure']");
+  if (form) {
+    rememberProcedureFocus(event.target);
+    scheduleProcedureAutosave(form);
+  }
+});
+
+app.addEventListener("change", async function (event) {
+  if (event.target.id === "import-procedures-file") {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    try {
+      const payload = JSON.parse(await file.text());
+      const accepted = window.confirm("Zaimportować procedury z pliku „" + file.name + "”? Nowe procedury zostaną dodane, a zmienione zaktualizowane.");
+      if (!accepted) return;
+      const result = await importProceduresFromJson(payload);
+      showToast("Import zakończony: dodano " + result.created + ", zmieniono " + result.updated + ", pominięto " + result.skipped + ".", "success");
+    } catch (error) {
+      showToast(error.message || "Nie udało się zaimportować pliku JSON.", "error");
+    } finally {
+      event.target.value = "";
+    }
+    return;
+  }
+  const form = event.target.closest("#procedure-form[data-form='procedure']");
+  if (form) {
+    rememberProcedureFocus(event.target);
+    scheduleProcedureAutosave(form);
   }
 });
 
@@ -483,24 +814,34 @@ app.addEventListener("submit", async function (event) {
   const formData = new FormData(form);
   if (form.dataset.form === "procedure") {
     try {
-      const saved = addOrUpdateProcedure(Object.fromEntries(formData.entries()), formData.get("id"));
-      state.view = { name: "department", dept: saved.dept };
+      clearTimeout(procedureAutosaveTimer);
+      if (procedureAutosavePromise) await procedureAutosavePromise;
+      const fields = procedureFieldsFromForm(form);
+      const id = String(formData.get("id") || "");
+      const fingerprint = procedureFingerprint(fields);
+      const saved = id && fingerprint === procedureAutosaveFingerprint
+        ? findProcedure(id)
+        : await addOrUpdateProcedure(fields, id);
+      if (!saved) throw new Error("Nie znaleziono procedury do edycji.");
+      procedureAutosaveFingerprint = fingerprint;
+      state.view = state.view.name === "admin" ? { name: "admin" } : { name: "department", dept: saved.dept };
       state.lastBrowseView = state.view;
-      state.modal = { type: "github" };
+      state.modal = { type: "saved" };
       notify();
-      showToast("Zmiany przygotowano do publikacji.", "success");
+      showToast("Zmiany zapisano w Firestore.", "success");
     } catch (error) {
       showToast(error.message || "Nie udało się zapisać procedury.", "error");
     }
   }
-  if (form.dataset.form === "password") {
-    const valid = await unlock(String(formData.get("password") || ""));
-    if (valid) {
+  if (form.dataset.form === "admin-login") {
+    try {
+      await unlock(String(formData.get("email") || ""), String(formData.get("password") || ""));
       setModal(null);
-      showToast("Tryb edycji został odblokowany.", "success");
-    } else {
-      showToast("Nieprawidłowe hasło.", "error");
-      const input = document.getElementById("edit-password");
+      navigate({ name: "admin" });
+      showToast("Zalogowano administratora.", "success");
+    } catch (error) {
+      showToast(error.message || "Nie udało się zalogować administratora.", "error");
+      const input = document.getElementById("admin-password");
       if (input) input.select();
     }
   }

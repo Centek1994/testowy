@@ -1,4 +1,23 @@
-import { DATA_FILE, DEPARTMENTS, EDIT_HASH, GITHUB_REPO, GITHUB_BRANCH } from "../config.js";
+import { DEPARTMENTS } from "../config.js";
+import {
+  isFirebaseConfigured,
+  signInAdministrator,
+  signOutAdministrator,
+  subscribeToAdministratorSession
+} from "../firebase.js";
+import {
+  createFirestoreBackup,
+  createProcedureInFirestore,
+  deleteProcedureInFirestore,
+  importProceduresToFirestore,
+  listFirestoreBackups,
+  readRegistry,
+  restoreFirestoreBackup,
+  searchProceduresInFirestore,
+  subscribeToRegistry,
+  updateProcedureInFirestore
+} from "../data/firestore-repository.js";
+import { normalizeSearchText, procedureSearchText, searchTerms } from "../data/search-index.js";
 
 const storage = {
   get(key, fallback) {
@@ -26,10 +45,6 @@ function readArray(key) {
   }
 }
 
-function normalize(value) {
-  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-}
-
 function isProcedure(value) {
   return value && typeof value === "object" && typeof value.id === "string" && typeof value.title === "string";
 }
@@ -42,13 +57,41 @@ function safeData(value) {
   });
 }
 
-function today() {
-  const date = new Date();
-  return String(date.getMonth() + 1).padStart(2, "0") + "/" + String(date.getDate()).padStart(2, "0") + "/" + date.getFullYear();
+function logMoment() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Warsaw",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date()).reduce(function (result, part) {
+    result[part.type] = part.value;
+    return result;
+  }, {});
+  return {
+    date: parts.year + "-" + parts.month + "-" + parts.day,
+    time: parts.hour + ":" + parts.minute + ":" + parts.second
+  };
+}
+
+function procedureLog(type, procedure) {
+  return Object.assign({
+    type: type,
+    procedureId: procedure.id,
+    procedureTitle: procedure.title
+  }, logMoment());
 }
 
 const listeners = new Set();
 let toastTimeout = 0;
+let unsubscribeFirestore = null;
+let unsubscribeAdministratorSession = null;
+let searchTimeout = 0;
+let searchRequestId = 0;
+const searchCache = new Map();
 
 export const state = {
   status: "loading",
@@ -57,11 +100,14 @@ export const state = {
   view: { name: "dashboard" },
   lastBrowseView: { name: "dashboard" },
   query: "",
+  search: { normalizedQuery: "", status: "idle", results: [] },
   expanded: new Set(),
   favoriteIds: new Set(readArray("sc-favs")),
   recentIds: readArray("sc-recents").slice(0, 8),
   theme: storage.get("sc-theme", ""),
-  editMode: storage.get("sc-edithash", "") === EDIT_HASH,
+  editMode: false,
+  admin: { status: "signed-out", user: null },
+  backups: { status: "idle", items: [] },
   sidebarCompact: storage.get("sc-sidebar-compact", "false") === "true",
   mobileNavOpen: false,
   palette: { open: false, query: "", selectionStart: 0, selectionEnd: 0 },
@@ -93,18 +139,63 @@ export function initialize() {
   document.documentElement.dataset.theme = state.theme;
 }
 
+function applyData(data) {
+  state.data = safeData(data);
+  searchCache.clear();
+  state.favoriteIds = new Set(Array.from(state.favoriteIds).filter(function (id) { return Boolean(findProcedure(id)); }));
+  storage.set("sc-favs", JSON.stringify(Array.from(state.favoriteIds)));
+  state.recentIds = state.recentIds.filter(function (id) { return Boolean(findProcedure(id)); });
+  storage.set("sc-recents", JSON.stringify(state.recentIds));
+}
+
+function handleFirestoreError(error) {
+  state.status = "error";
+  state.error = error;
+  notify();
+}
+
+function applyAdministratorSession(session) {
+  state.admin = session
+    ? { status: session.canEdit ? "ready" : "viewer", user: session }
+    : { status: "signed-out", user: null };
+  state.editMode = Boolean(session && session.canEdit);
+  notify();
+}
+
+function handleAdministratorError(error) {
+  state.admin = { status: "error", user: null, error: error };
+  state.editMode = false;
+  notify();
+}
+
+async function observeAdministratorSession() {
+  if (unsubscribeAdministratorSession) return;
+  state.admin = { status: "checking", user: null };
+  unsubscribeAdministratorSession = await subscribeToAdministratorSession(
+    applyAdministratorSession,
+    handleAdministratorError
+  );
+}
+
 export async function loadData() {
   state.status = "loading";
   state.error = null;
   notify();
+  if (unsubscribeFirestore) {
+    unsubscribeFirestore();
+    unsubscribeFirestore = null;
+  }
   try {
-    const response = await fetch(DATA_FILE + "?ts=" + Date.now(), { cache: "no-store" });
-    if (!response.ok) throw new Error("HTTP " + response.status);
-    state.data = safeData(await response.json());
-    state.favoriteIds = new Set(Array.from(state.favoriteIds).filter(function (id) { return Boolean(findProcedure(id)); }));
-    storage.set("sc-favs", JSON.stringify(Array.from(state.favoriteIds)));
-    state.recentIds = state.recentIds.filter(function (id) { return Boolean(findProcedure(id)); });
-    storage.set("sc-recents", JSON.stringify(state.recentIds));
+    if (!isFirebaseConfigured()) {
+      throw new Error("Firebase nie jest skonfigurowany. Uzupełnij FIREBASE_CONFIG w js/config.js.");
+    }
+    await observeAdministratorSession();
+    applyData(await readRegistry());
+    unsubscribeFirestore = await subscribeToRegistry(function (data) {
+      applyData(data);
+      state.status = "ready";
+      notify();
+    }, handleFirestoreError);
     state.status = "ready";
   } catch (error) {
     state.status = "error";
@@ -194,16 +285,14 @@ export function setSearch(query) {
   } else if (state.view.name === "search") {
     state.view = state.lastBrowseView;
   }
+  requestProcedureSearch(query);
   notify();
 }
 
-export function searchProcedures(query) {
-  const tokens = normalize(query).trim().split(/\s+/).filter(Boolean);
-  if (!tokens.length) return [];
-  return state.data.procedures.map(function (procedure) {
-    const department = departmentFor(procedure.dept);
-    const title = normalize(procedure.title);
-    const body = normalize([procedure.exec, procedure.notes, department.name].concat(procedure.steps || []).join(" "));
+function rankProcedures(procedures, tokens) {
+  return procedures.map(function (procedure) {
+    const title = normalizeSearchText(procedure.title);
+    const body = normalizeSearchText(procedureSearchText(procedure));
     let score = 0;
     tokens.forEach(function (token) {
       if (title.startsWith(token)) score += 80;
@@ -214,6 +303,122 @@ export function searchProcedures(query) {
   }).filter(function (item) { return item.score > 0; }).sort(function (a, b) {
     return b.score - a.score || a.procedure.title.localeCompare(b.procedure.title, "pl");
   }).map(function (item) { return item.procedure; });
+}
+
+function requestProcedureSearch(query) {
+  const normalizedQuery = normalizeSearchText(query).trim();
+  const tokens = searchTerms(normalizedQuery);
+  const requestId = ++searchRequestId;
+  clearTimeout(searchTimeout);
+
+  if (!tokens.length) {
+    state.search = { normalizedQuery: "", status: "idle", results: [] };
+    return;
+  }
+
+  const cached = searchCache.get(normalizedQuery);
+  if (cached) {
+    state.search = { normalizedQuery: normalizedQuery, status: "ready", results: cached };
+    return;
+  }
+
+  state.search = { normalizedQuery: normalizedQuery, status: "loading", results: [] };
+  searchTimeout = window.setTimeout(async function () {
+    try {
+      const candidates = await searchProceduresInFirestore(normalizedQuery);
+      if (requestId !== searchRequestId) return;
+      const results = rankProcedures(candidates, tokens);
+      searchCache.set(normalizedQuery, results);
+      state.search = { normalizedQuery: normalizedQuery, status: "ready", results: results };
+    } catch (error) {
+      if (requestId !== searchRequestId) return;
+      state.search = { normalizedQuery: normalizedQuery, status: "error", results: [] };
+    }
+    notify();
+  }, 140);
+}
+
+export function searchProcedures(query) {
+  const normalizedQuery = normalizeSearchText(query).trim();
+  return state.search.normalizedQuery === normalizedQuery ? state.search.results : [];
+}
+
+export function isSearchingProcedures(query) {
+  return state.search.normalizedQuery === normalizeSearchText(query).trim() && state.search.status === "loading";
+}
+
+export function canDeleteProcedures() {
+  return Boolean(state.admin.user && state.admin.user.canDelete);
+}
+
+function assertAdminAccess() {
+  if (!canDeleteProcedures()) throw new Error("Ta operacja jest dostępna tylko dla roli admin.");
+}
+
+function portableProcedure(procedure) {
+  return {
+    id: procedure.id,
+    title: procedure.title,
+    dept: procedure.dept,
+    exec: procedure.exec || "",
+    steps: Array.isArray(procedure.steps) ? procedure.steps : [],
+    notes: procedure.notes || "",
+    sortOrder: Number(procedure.sortOrder || 0)
+  };
+}
+
+export function exportProceduresAsJson() {
+  return {
+    format: "state-capitol-procedures",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    procedures: state.data.procedures.map(portableProcedure)
+  };
+}
+
+export async function importProceduresFromJson(payload) {
+  assertAdminAccess();
+  return importProceduresToFirestore(payload);
+}
+
+export async function refreshBackups() {
+  assertAdminAccess();
+  state.backups = { status: "loading", items: state.backups.items };
+  notify();
+  try {
+    const items = await listFirestoreBackups();
+    state.backups = { status: "ready", items: items };
+    return items;
+  } catch (error) {
+    state.backups = { status: "error", items: [] };
+    throw error;
+  } finally {
+    notify();
+  }
+}
+
+export async function createBackup() {
+  assertAdminAccess();
+  if (state.backups.status === "creating") throw new Error("Tworzenie kopii zapasowej już trwa.");
+  state.backups = { status: "creating", items: state.backups.items };
+  notify();
+  try {
+    const backup = await createFirestoreBackup();
+    await refreshBackups();
+    return backup;
+  } finally {
+    if (state.backups.status === "creating") {
+      state.backups = { status: "idle", items: state.backups.items };
+      notify();
+    }
+  }
+}
+
+export async function restoreBackup(backupId) {
+  assertAdminAccess();
+  const result = await restoreFirestoreBackup(backupId);
+  await refreshBackups();
+  return result;
 }
 
 export function toggleExpanded(id) {
@@ -241,6 +446,7 @@ export function setPalette(open, query = "", selectionStart, selectionEnd) {
     selectionStart: Number.isInteger(selectionStart) ? selectionStart : fallbackPosition,
     selectionEnd: Number.isInteger(selectionEnd) ? selectionEnd : fallbackPosition
   };
+  requestProcedureSearch(query);
   notify();
 }
 
@@ -264,12 +470,14 @@ export function showToast(message, type = "info") {
   notify();
 }
 
-export function addOrUpdateProcedure(fields, id) {
+export async function addOrUpdateProcedure(fields, id) {
+  if (!state.editMode) throw new Error("Rola viewer nie może dodawać ani edytować procedur.");
+  const rawSteps = Array.isArray(fields.steps) ? fields.steps : String(fields.steps || "").split("\n");
   const clean = {
     title: String(fields.title || "").trim(),
     dept: String(fields.dept || "").trim(),
     exec: String(fields.exec || "").trim(),
-    steps: String(fields.steps || "").split("\n").map(function (step) {
+    steps: rawSteps.map(function (step) {
       return step.replace(/^\s*\d+[.)]\s*/, "").trim();
     }).filter(Boolean),
     notes: String(fields.notes || "").trim()
@@ -279,58 +487,44 @@ export function addOrUpdateProcedure(fields, id) {
   if (id) {
     const existing = findProcedure(id);
     if (!existing) throw new Error("Nie znaleziono procedury do edycji.");
-    Object.assign(existing, clean);
-    addLog("mod", "Zmieniono procedurę „" + clean.title + "” w " + departmentFor(clean.dept).name);
-    return existing;
+    const updated = Object.assign({}, existing, clean);
+    await updateProcedureInFirestore(id, clean, procedureLog("update", updated));
+    return updated;
   }
   const created = Object.assign({ id: "u-" + Date.now() }, clean);
-  state.data.procedures.push(created);
-  addLog("add", "Dodano procedurę „" + clean.title + "” w " + departmentFor(clean.dept).name);
+  await createProcedureInFirestore(created, procedureLog("create", created));
   return created;
 }
 
-export function removeProcedure(id) {
+export async function removeProcedure(id) {
+  if (!canDeleteProcedures()) throw new Error("Usuwanie procedur jest dostępne tylko dla roli admin.");
   const procedure = findProcedure(id);
   if (!procedure) return false;
+  await deleteProcedureInFirestore(id, procedureLog("delete", procedure));
   state.data.procedures = state.data.procedures.filter(function (item) { return item.id !== id; });
   state.favoriteIds.delete(id);
   state.recentIds = state.recentIds.filter(function (item) { return item !== id; });
   storage.set("sc-favs", JSON.stringify(Array.from(state.favoriteIds)));
   storage.set("sc-recents", JSON.stringify(state.recentIds));
-  addLog("del", "Usunięto procedurę „" + procedure.title + "” w " + departmentFor(procedure.dept).name);
   return true;
 }
 
-export function addLog(type, text) {
-  state.data.log.unshift({ date: today(), type: type, text: text });
-}
-
-export async function unlock(password) {
-  const bytes = new TextEncoder().encode(password);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  const hash = Array.from(new Uint8Array(digest)).map(function (value) {
-    return value.toString(16).padStart(2, "0");
-  }).join("");
-  if (hash !== EDIT_HASH) return false;
-  state.editMode = true;
-  storage.set("sc-edithash", EDIT_HASH);
-  notify();
+export async function unlock(email, password) {
+  const session = await signInAdministrator(email, password);
+  if (!session || !session.canEdit) {
+    await signOutAdministrator();
+    throw new Error("To konto ma rolę viewer i nie może edytować procedur.");
+  }
+  applyAdministratorSession(session);
   return true;
 }
 
-export function lock() {
-  state.editMode = false;
-  storage.remove("sc-edithash");
-  notify();
-}
-
-export function serializedData() {
-  return JSON.stringify(state.data, null, 2);
-}
-
-export function githubEditUrl() {
-  if (!GITHUB_REPO) return "";
-  return "https://github.com/" + GITHUB_REPO + "/edit/" + GITHUB_BRANCH + "/procedury.json";
+export async function lock() {
+  try {
+    await signOutAdministrator();
+  } finally {
+    applyAdministratorSession(null);
+  }
 }
 
 export function procedureText(procedure) {
