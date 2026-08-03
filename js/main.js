@@ -2,7 +2,7 @@ import { DEPARTMENTS, DEPARTMENT_NOTE, ORGANIZATION } from "./config.js";
 import {
   addOrUpdateProcedure, applyTheme, canDeleteProcedures, createBackup, departmentsWithCounts, exportProceduresAsJson,
   favoriteProcedures, findProcedure, importProceduresFromJson, initialize, isFavorite, isSearchingProcedures, loadData,
-  lock, navigate, notify, openProcedure, procedureText, recentProcedures, refreshBackups, removeProcedure,
+  lock, migrateLegacyProcedures, navigate, notify, openProcedure, procedureText, recentProcedures, refreshBackups, removeProcedure,
   restoreBackup, searchProcedures, setMobileNav, setModal, setPalette, setSearch, setSidebarCompact,
   setTeleprompter, showToast, state, subscribe, toggleExpanded, toggleFavorite, unlock
 } from "./core/store.js";
@@ -230,6 +230,11 @@ function settingsView() {
   const backups = state.backups.items || [];
   const backupBusy = state.backups.status === "creating" || state.backups.status === "loading";
   const backupStatus = state.backups.status === "creating" ? "Tworzenie kopii w Firestore…" : state.backups.status === "loading" ? "Pobieranie kopii…" : "Kopie przechowują pełny stan kolekcji procedures.";
+  const migrationBusy = state.migration.status === "running";
+  const migrationResult = state.migration.result;
+  const migrationSummary = migrationResult
+    ? "Ostatnia migracja: dodano " + migrationResult.created + ", zaktualizowano " + migrationResult.updated + ", pominięto " + migrationResult.skipped + " dokumentów."
+    : "Importer odczyta procedury i wpisy log z pliku procedury.json.";
   const adminTools = isAdmin
     ? "<section class='settings-card settings-card--wide'><div class='settings-card__icon'>" + icon("refresh", 19) + "</div><div class='settings-card__content'><span class='section-label'>Cloud Firestore</span><h2>Kopie zapasowe</h2><p>Utwórz niezależny snapshot procedur. Odzyskanie przywraca dokładny stan wybranej kopii i zapisuje operacje w historii zmian.</p><div class='settings-card__actions'>" +
       button(backupBusy ? "Pracuję…" : "Utwórz kopię", "create-backup", { icon: "plus", variant: "primary", disabled: backupBusy }) +
@@ -242,6 +247,7 @@ function settingsView() {
   return "<section class='settings-view'><header class='view-heading'><div><div class='eyebrow'>Dane aplikacji</div><h1>Ustawienia</h1><p>Przenoś procedury między środowiskami i zarządzaj bezpiecznymi kopiami danych.</p></div></header><div class='settings-grid'>" +
     "<section class='settings-card'><div class='settings-card__icon'>" + icon("copy", 19) + "</div><div class='settings-card__content'><span class='section-label'>Archiwum lokalne</span><h2>Eksport do JSON</h2><p>Pobierz aktualny, przenośny zapis wszystkich procedur bez danych logowania ani historii zmian.</p><div class='settings-card__actions'>" + button("Pobierz JSON", "export-procedures", { icon: "copy", variant: "primary" }) + "</div></div></section>" +
     (isAdmin ? "<section class='settings-card'><div class='settings-card__icon'>" + icon("plus", 19) + "</div><div class='settings-card__content'><span class='section-label'>Cloud Firestore</span><h2>Import z JSON</h2><p>Wczytaj wcześniej wyeksportowany plik. Identyczne procedury są pomijane; nowe i zmienione są zapisywane bez odświeżania strony.</p><input id='import-procedures-file' class='visually-hidden' type='file' accept='application/json,.json'><div class='settings-card__actions'>" + button("Wybierz plik JSON", "select-import-file", { icon: "plus" }) + "</div></div></section>" : "") +
+    (isAdmin ? "<section class='settings-card'><div class='settings-card__icon'>" + icon("refresh", 19) + "</div><div class='settings-card__content'><span class='section-label'>Migracja jednorazowa</span><h2>Importuj procedury.json</h2><p>Przenieś archiwalne procedury oraz  wpisy historii do Firestore. Ponowne uruchomienie nie utworzy duplikatów.</p><div class='settings-card__actions'>" + button(migrationBusy ? "Trwa migracja…" : "Uruchom migrację", "migrate-legacy-json", { icon: "refresh", variant: "primary", disabled: migrationBusy }) + "</div><span class='settings-card__hint'>" + escapeHtml(migrationSummary) + "</span></div></section>" : "") +
     adminTools +
     "</div></section>";
 }
@@ -683,6 +689,15 @@ app.addEventListener("click", async function (event) {
       showToast("Utworzono kopię „" + backup.name + "”.", "success");
     } catch (error) {
       showToast(error.message || "Nie udało się utworzyć kopii zapasowej.", "error");
+    }
+  } else if (action === "migrate-legacy-json") {
+    const accepted = window.confirm("Uruchomić migrację procedury.json do Firestore? Import doda nowe i zaktualizuje zmienione procedury oraz przeniesie archiwalne wpisy historii.");
+    if (!accepted) return;
+    try {
+      const result = await migrateLegacyProcedures();
+      showToast("Migracja zakończona: dodano " + result.created + ", zaktualizowano " + result.updated + ", pominięto " + result.skipped + " dokumentów. Procedury: " + result.procedures.created + ", logi: " + result.logs.created + ".", "success");
+    } catch (error) {
+      showToast(error.message || "Nie udało się wykonać migracji procedury.json.", "error");
     }
   } else if (action === "restore-backup") {
     const selected = state.backups.items.find(function (backup) { return backup.id === id; });

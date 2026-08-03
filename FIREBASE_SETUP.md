@@ -108,3 +108,11 @@ Administrator tworzy kopię z ekranu **Ustawienia**. Aplikacja zapisuje metadane
 Przy odzyskiwaniu aplikacja synchronizuje `procedures` dokładnie do stanu wybranej kopii: dodaje brakujące dokumenty, aktualizuje zmienione i usuwa procedury, których w kopii nie było. Potwierdzenie w interfejsie ostrzega przed tym skutkiem. Operacje odzyskiwania są rejestrowane w `logs`.
 
 Reguły z `firestore.rules` udostępniają kolekcję `backups` wraz z jej podkolekcją wyłącznie roli `admin`. Po zmianie pliku reguł wdroż go ponownie poleceniem z kroku 3.
+
+## 8. Jednorazowa migracja procedury.json
+
+Po zalogowaniu kontem z rolą `admin` otwórz **Ustawienia** i wybierz **Uruchom migrację** w sekcji „Importuj procedury.json”. Importer odczytuje lokalny, archiwalny plik `procedury.json`; plik pozostaje w projekcie i nie jest usuwany.
+
+Każda pozycja z `procedures` trafia do `procedures/{id}` z zachowaniem pól `id`, `dept`, `title`, `exec`, `steps` i `notes`. Aplikacja dodaje techniczne pola `sortOrder` oraz `searchPrefixes`, wymagane przez bieżące sortowanie i wyszukiwanie. Wpisy z tablicy `log` są zapisywane do `logs` z deterministycznym identyfikatorem `legacy-…`, dlatego kolejne uruchomienie migracji nie powieli historii.
+
+Po zakończeniu interfejs pokazuje osobno wynik procedur i logów, a łącznie liczbę dokumentów dodanych, zaktualizowanych oraz pominiętych.

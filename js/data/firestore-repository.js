@@ -267,6 +267,98 @@ export async function deleteProcedureInFirestore(id, log) {
   await batch.commit();
 }
 
+function legacyLogType(type) {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized === "add" || normalized === "create") return "create";
+  if (normalized === "del" || normalized === "delete") return "delete";
+  return "update";
+}
+
+function legacyLogHash(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function legacyLogDocumentId(entry, index) {
+  const source = [entry.date, entry.type, entry.text, index].map(function (value) { return String(value || ""); }).join("|");
+  return "legacy-" + String(index + 1).padStart(3, "0") + "-" + legacyLogHash(source);
+}
+
+function legacyLog(entry, index) {
+  const text = String(entry.text || "Wpis historyczny z procedury.json").trim();
+  const sourceType = String(entry.type || "mod").trim();
+  const sourceDate = String(entry.date || "—").trim();
+  return {
+    type: legacyLogType(sourceType),
+    procedureId: "legacy-" + String(index + 1),
+    procedureTitle: text,
+    date: sourceDate,
+    time: "00:00:00",
+    legacyDate: sourceDate,
+    legacyType: sourceType,
+    legacyText: text,
+    source: "procedury.json"
+  };
+}
+
+async function importLegacyLogs(services, entries) {
+  const firestore = services.firestore;
+  const pending = [];
+  let skipped = 0;
+
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index] || {};
+    const id = legacyLogDocumentId(entry, index);
+    const reference = firestore.doc(services.db, "logs", id);
+    const existing = await firestore.getDoc(reference);
+    if (existing.exists()) {
+      skipped += 1;
+      continue;
+    }
+    pending.push({ reference: reference, payload: legacyLog(entry, index) });
+  }
+
+  const chunkSize = 400;
+  for (let start = 0; start < pending.length; start += chunkSize) {
+    const batch = firestore.writeBatch(services.db);
+    pending.slice(start, start + chunkSize).forEach(function (item) {
+      batch.set(item.reference, logPayload(services, item.payload));
+    });
+    await batch.commit();
+  }
+
+  return { created: pending.length, updated: 0, skipped: skipped, total: entries.length };
+}
+
+export async function importLegacyProceduresFromJson() {
+  const response = await fetch(new URL("../../procedury.json", import.meta.url));
+  if (!response.ok) throw new Error("Nie udało się odczytać archiwalnego pliku procedury.json.");
+  const payload = await response.json();
+  const procedures = Array.isArray(payload && payload.procedures) ? payload.procedures : null;
+  const logs = Array.isArray(payload && payload.log) ? payload.log : null;
+  if (!procedures || !logs) throw new Error("Plik procedury.json ma nieprawidłową strukturę migracji.");
+
+  const procedureResult = await importProceduresToFirestore({
+    procedures: procedures.map(function (procedure, index) {
+      return Object.assign({}, procedure, { sortOrder: index + 1 });
+    })
+  });
+  const services = await getFirebaseServices();
+  const logResult = await importLegacyLogs(services, logs);
+  return {
+    procedures: procedureResult,
+    logs: logResult,
+    created: procedureResult.created + logResult.created,
+    updated: procedureResult.updated + logResult.updated,
+    skipped: procedureResult.skipped + logResult.skipped,
+    total: procedureResult.total + logResult.total
+  };
+}
+
 export async function importProceduresToFirestore(payload) {
   const source = Array.isArray(payload) ? payload : payload && payload.procedures;
   if (!Array.isArray(source)) throw new Error("Plik JSON musi zawierać tablicę procedures.");

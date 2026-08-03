@@ -9,6 +9,7 @@ import {
   createFirestoreBackup,
   createProcedureInFirestore,
   deleteProcedureInFirestore,
+  importLegacyProceduresFromJson,
   importProceduresToFirestore,
   listFirestoreBackups,
   readRegistry,
@@ -108,6 +109,7 @@ export const state = {
   editMode: false,
   admin: { status: "signed-out", user: null },
   backups: { status: "idle", items: [] },
+  migration: { status: "idle", result: null },
   sidebarCompact: storage.get("sc-sidebar-compact", "false") === "true",
   mobileNavOpen: false,
   palette: { open: false, query: "", selectionStart: 0, selectionEnd: 0 },
@@ -379,6 +381,23 @@ export function exportProceduresAsJson() {
 export async function importProceduresFromJson(payload) {
   assertAdminAccess();
   return importProceduresToFirestore(payload);
+}
+
+export async function migrateLegacyProcedures() {
+  assertAdminAccess();
+  if (state.migration.status === "running") throw new Error("Migracja procedury.json już trwa.");
+  state.migration = { status: "running", result: null };
+  notify();
+  try {
+    const result = await importLegacyProceduresFromJson();
+    state.migration = { status: "ready", result: result };
+    return result;
+  } catch (error) {
+    state.migration = { status: "error", result: null };
+    throw error;
+  } finally {
+    notify();
+  }
 }
 
 export async function refreshBackups() {
