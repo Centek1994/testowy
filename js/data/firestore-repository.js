@@ -103,9 +103,7 @@ function currentHistoryQuery(services) {
   const firestore = services.firestore;
   return firestore.query(
     firestore.collection(services.db, "logs"),
-    firestore.where("historyEpoch", "==", CURRENT_HISTORY_EPOCH),
-    firestore.orderBy("createdAt", "desc"),
-    firestore.limit(100)
+    firestore.where("historyEpoch", "==", CURRENT_HISTORY_EPOCH)
   );
 }
 
@@ -197,13 +195,18 @@ export async function readRegistry() {
     firestore.orderBy("sortOrder", "asc")
   );
   const logsQuery = currentHistoryQuery(services);
-  const snapshots = await Promise.all([
-    firestore.getDocs(proceduresQuery),
-    firestore.getDocs(logsQuery)
-  ]);
+  const procedureSnapshot = await firestore.getDocs(proceduresQuery);
+  let log = [];
+  try {
+    const logSnapshot = await firestore.getDocs(logsQuery);
+    log = sortedLogEntries(logSnapshot.docs.map(logFromSnapshot));
+  } catch (error) {
+    // Błąd historii nie może blokować dostępu do procedur.
+    console.warn("Nie udało się pobrać historii zmian.", error);
+  }
   return {
-    procedures: snapshots[0].docs.map(procedureFromSnapshot),
-    log: sortedLogEntries(snapshots[1].docs.map(logFromSnapshot))
+    procedures: procedureSnapshot.docs.map(procedureFromSnapshot),
+    log: log
   };
 }
 
@@ -245,7 +248,12 @@ export async function subscribeToRegistry(onChange, onError) {
   const unsubscribeLogs = firestore.onSnapshot(logsQuery, function (snapshot) {
     log = sortedLogEntries(snapshot.docs.map(logFromSnapshot));
     publish();
-  }, onError);
+  }, function (error) {
+    // Zostaw procedury dostępne, nawet jeżeli historia chwilowo nie jest dostępna.
+    log = [];
+    publish();
+    console.warn("Nie udało się obserwować historii zmian.", error);
+  });
 
   return function () {
     unsubscribeProcedures();
