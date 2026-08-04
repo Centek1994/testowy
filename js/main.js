@@ -105,12 +105,33 @@ function quickProcedure(procedure, showDepartment = true) {
     icon("chevron", 16, "quick-procedure__chevron") + "</button>";
 }
 
+function logDateTimeValue(entry) {
+  const date = String(entry && entry.date || "").trim();
+  const time = String(entry && entry.time || "00:00:00").trim();
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const legacy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(date);
+  const timeParts = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(time);
+  if (!timeParts || (!iso && !legacy)) return Number(entry && entry.createdAtMillis || 0);
+  const year = Number(iso ? iso[1] : legacy[3]);
+  const month = Number(iso ? iso[2] : legacy[1]);
+  const day = Number(iso ? iso[3] : legacy[2]);
+  return Date.UTC(year, month - 1, day, Number(timeParts[1]), Number(timeParts[2]), Number(timeParts[3] || 0));
+}
+
+function sortedLogEntries(entries) {
+  return entries.slice().sort(function (left, right) {
+    const byRecordedDate = logDateTimeValue(right) - logDateTimeValue(left);
+    return byRecordedDate || Number(right.createdAtMillis || 0) - Number(left.createdAtMillis || 0);
+  });
+}
+
 function dashboardView() {
   const departments = departmentsWithCounts();
   const recents = recentProcedures();
   const favorites = favoriteProcedures().slice(0, 5);
-  const latest = state.data.log.slice(0, 5);
-  const lastUpdated = latest[0] ? latest[0].date + " " + latest[0].time : "brak wpisów";
+  const latest = sortedLogEntries(state.data.log).slice(0, 5);
+  const mostRecent = latest[0];
+  const lastUpdated = mostRecent ? mostRecent.date + " " + mostRecent.time : "brak wpisów";
   return "<section class='dashboard-view'>" +
     "<div class='page-hero'><div><div class='eyebrow'>State Capitol / operacje</div><h1>Wszystkie procedury,<br><em>zawsze pod ręką.</em></h1><p>Przejrzysta baza wiedzy dla zespołu State Capitol. Otwieraj, kopiuj, drukuj i prowadź ceremonie bez szukania po wiadomościach.</p><div class='page-hero__actions'>" +
       button("Otwórz wyszukiwarkę", "open-palette", { icon: "search", variant: "primary" }) +
@@ -140,8 +161,9 @@ function dashboardView() {
 function statCard(value, label, iconName, tone, view) {
   const tag = view ? "button" : "div";
   const action = view ? " type='button' data-action='navigate' data-view='" + escapeHtml(view) + "'" : "";
+  const accessibilityLabel = view ? " aria-label='Pokaż " + escapeHtml(label) + "'" : "";
   const clickable = view ? " stat-card--clickable" : "";
-  return "<" + tag + " class='stat-card stat-card--" + tone + clickable + "'" + action + "><span class='stat-card__icon'>" + icon(iconName, 17) + "</span><div><strong>" + escapeHtml(value) + "</strong><span>" + escapeHtml(label) + "</span></div></" + tag + ">";
+  return "<" + tag + " class='stat-card stat-card--" + tone + clickable + "'" + action + accessibilityLabel + "><span class='stat-card__icon'>" + icon(iconName, 17) + "</span><div><strong>" + escapeHtml(value) + "</strong><span>" + escapeHtml(label) + "</span></div></" + tag + ">";
 }
 
 function emptyInline(text, actionLabel, action) {
