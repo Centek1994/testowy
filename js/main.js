@@ -19,16 +19,31 @@ let procedureAutosaveFingerprint = "";
 let procedureAutosavePromise = null;
 let procedureFocus = null;
 
+const DEPARTMENT_LOGOS = {
+  go: "./gov_seal-CY5gnciM.png",
+  dmv: "./dmv_logo-BH-guDB4.png",
+  hhs: "./hhs_dark_logo-CODVnXDo.png",
+  irs: "./irs_dark_logo-Ce0G8mme.png",
+  irsci: "./irs_ci_logo-pzSvsn3Z.png"
+};
+
 function activeView(name, department) {
   return state.view.name === name && (!department || state.view.dept === department);
+}
+
+function departmentLogo(department, className) {
+  const source = DEPARTMENT_LOGOS[department.id];
+  if (!source) return "";
+  return "<span class='" + className + "'><img src='" + source + "' alt=''></span>";
 }
 
 function navButton(label, iconName, view, options = {}) {
   const active = activeView(view, options.dept);
   const data = options.dept ? "data-dept='" + escapeHtml(options.dept) + "'" : "";
   const count = typeof options.count === "number" ? "<span class='side-nav__count'>" + options.count + "</span>" : "";
+  const navigationIcon = options.department ? departmentLogo(options.department, "side-nav__department-logo") || icon(iconName, 17) : icon(iconName, 17);
   return "<button type='button' class='side-nav__item " + (active ? "is-active" : "") + "' data-action='navigate' data-view='" + view + "' " + data + " title='" + escapeHtml(label) + "'>" +
-    icon(iconName, 17) + "<span class='side-nav__item-text'>" + escapeHtml(label) + "</span>" + count + "</button>";
+    navigationIcon + "<span class='side-nav__item-text'>" + escapeHtml(label) + "</span>" + count + "</button>";
 }
 
 function sidebar() {
@@ -48,9 +63,9 @@ function sidebar() {
     "</div></div>" +
     "<div class='sidebar__section'><div class='sidebar__label'>Działy</div><div class='side-nav'>" +
       "<div class='side-nav__group'>Obywatelskie</div>" +
-      civic.map(function (department) { return navButton(department.name, "building", "department", { dept: department.id, count: department.count }); }).join("") +
+      civic.map(function (department) { return navButton(department.name, "building", "department", { dept: department.id, count: department.count, department: department }); }).join("") +
       "<div class='side-nav__group'>Prawno-śledcze</div>" +
-      legal.map(function (department) { return navButton(department.name, "building", "department", { dept: department.id, count: department.count }); }).join("") +
+      legal.map(function (department) { return navButton(department.name, "building", "department", { dept: department.id, count: department.count, department: department }); }).join("") +
     "</div></div>" +
     "<div class='sidebar__bottom'><div class='side-nav'>" +
       "<button type='button' class='side-nav__item' data-action='toggle-sidebar' title='Zwiń lub rozwiń panel'>" + icon("panel", 17) + "<span class='side-nav__item-text'>Zwiń panel</span></button>" +
@@ -105,6 +120,10 @@ function quickProcedure(procedure, showDepartment = true) {
     icon("chevron", 16, "quick-procedure__chevron") + "</button>";
 }
 
+function departmentTileMark(department) {
+  return departmentLogo(department, "department-tile__logo") || "<span class='department-tile__code'>" + escapeHtml(department.short) + "</span>";
+}
+
 function logDateTimeValue(entry) {
   const date = String(entry && entry.date || "").trim();
   const time = String(entry && entry.time || "00:00:00").trim();
@@ -150,7 +169,7 @@ function dashboardView() {
     "</section></div>" +
     "<section class='dashboard-panel'><div class='panel-heading'><div><span class='section-label'>Mapa wiedzy</span><h2>Działy i procedury</h2></div></div><div class='department-grid'>" +
       departments.map(function (department) {
-        return "<button type='button' class='department-tile " + (department.group === "legal" ? "is-legal" : "") + "' data-action='navigate' data-view='department' data-dept='" + escapeHtml(department.id) + "'><span>" + escapeHtml(department.short) + "</span><strong>" + escapeHtml(department.name) + "</strong><b>" + department.count + "</b></button>";
+        return "<button type='button' class='department-tile " + (department.group === "legal" ? "is-legal" : "") + "' data-action='navigate' data-view='department' data-dept='" + escapeHtml(department.id) + "'>" + departmentTileMark(department) + "<strong>" + escapeHtml(department.name) + "</strong><b>" + department.count + "</b></button>";
       }).join("") +
     "</div></section>" +
     "<section class='dashboard-panel'><div class='panel-heading'><div><span class='section-label'>Rejestr</span><h2>Ostatnie zmiany</h2></div>" + button("Pełna historia", "navigate", { small: true, variant: "ghost", extra: "data-view='activity'" }) + "</div>" +
