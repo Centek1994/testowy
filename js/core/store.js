@@ -370,6 +370,7 @@ function portableProcedure(procedure) {
 }
 
 export function exportProceduresAsJson() {
+  assertAdminAccess();
   return {
     format: "state-capitol-procedures",
     version: 1,

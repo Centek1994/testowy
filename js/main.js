@@ -90,7 +90,7 @@ function viewMeta() {
     activity: ["Rejestr zmian", "Historia zmian"],
     organization: ["State Capitol", "Struktura urzędu"],
     admin: ["Administracja", "Panel administratora"],
-    settings: ["Administracja", "Ustawienia danych"],
+    settings: ["Twoja przestrzeń", "Ustawienia"],
     search: ["Wyszukiwanie", state.query ? "Wyniki wyszukiwania" : "Szukaj procedur"]
   }[state.view.name] || ["State Capitol", "Centrum procedur"];
   return { crumb: meta[0], title: meta[1] };
@@ -282,6 +282,17 @@ function backupItem(backup) {
 
 function settingsView() {
   const isAdmin = canDeleteProcedures();
+  const themeControls = "<div class='settings-card__actions'>" +
+    button("Jasny", "set-theme", { icon: "sun", variant: state.theme === "light" ? "primary" : "ghost", extra: "data-theme='light'" }) +
+    button("Ciemny", "set-theme", { icon: "moon", variant: state.theme === "dark" ? "primary" : "ghost", extra: "data-theme='dark'" }) +
+    "</div>";
+  const personalSettings = "<section class='settings-card'><div class='settings-card__icon'>" + icon(state.theme === "dark" ? "moon" : "sun", 19) + "</div><div class='settings-card__content'><span class='section-label'>Wygląd</span><h2>Motyw aplikacji</h2><p>Wybierz jasny lub ciemny motyw. Ustawienie jest zapisywane tylko w tej przeglądarce.</p>" + themeControls + "</div></section>" +
+    "<section class='settings-card'><div class='settings-card__icon'>" + icon("panel", 19) + "</div><div class='settings-card__content'><span class='section-label'>Nawigacja</span><h2>Panel boczny</h2><p>Ustaw wygodną dla siebie szerokość panelu z działami i skrótami.</p><div class='settings-card__actions'>" + button(state.sidebarCompact ? "Rozwiń panel" : "Zwiń panel", "toggle-sidebar", { icon: "panel" }) + "</div></div></section>";
+
+  if (!isAdmin) {
+    return "<section class='settings-view'><header class='view-heading'><div><div class='eyebrow'>Twoja przestrzeń</div><h1>Ustawienia</h1><p>Dostosuj wygląd i nawigację aplikacji do własnych preferencji.</p></div></header><div class='settings-grid'>" + personalSettings + "</div></section>";
+  }
+
   const backups = state.backups.items || [];
   const backupBusy = state.backups.status === "creating" || state.backups.status === "loading";
   const backupStatus = state.backups.status === "creating" ? "Tworzenie kopii w Firestore…" : state.backups.status === "loading" ? "Pobieranie kopii…" : "Kopie przechowują pełny stan kolekcji procedures.";
@@ -290,19 +301,18 @@ function settingsView() {
   const migrationSummary = migrationResult
     ? "Ostatnia migracja: dodano " + migrationResult.created + ", zaktualizowano " + migrationResult.updated + ", pominięto " + migrationResult.skipped + " dokumentów."
     : "Importer odczyta procedury i wpisy log z pliku procedury.json.";
-  const adminTools = isAdmin
-    ? "<section class='settings-card settings-card--wide'><div class='settings-card__icon'>" + icon("refresh", 19) + "</div><div class='settings-card__content'><span class='section-label'>Cloud Firestore</span><h2>Kopie zapasowe</h2><p>Utwórz niezależny snapshot procedur. Odzyskanie przywraca dokładny stan wybranej kopii i zapisuje operacje w historii zmian.</p><div class='settings-card__actions'>" +
+  const adminTools = "<section class='settings-card settings-card--wide'><div class='settings-card__icon'>" + icon("refresh", 19) + "</div><div class='settings-card__content'><span class='section-label'>Cloud Firestore</span><h2>Kopie zapasowe</h2><p>Utwórz niezależny snapshot procedur. Odzyskanie przywraca dokładny stan wybranej kopii i zapisuje operacje w historii zmian.</p><div class='settings-card__actions'>" +
       button(backupBusy ? "Pracuję…" : "Utwórz kopię", "create-backup", { icon: "plus", variant: "primary", disabled: backupBusy }) +
       button("Odśwież listę", "refresh-backups", { icon: "refresh", disabled: backupBusy }) +
       "</div><span class='settings-card__hint'>" + escapeHtml(backupStatus) + "</span>" +
       (backups.length ? "<div class='backup-list'>" + backups.map(backupItem).join("") + "</div>" : "<div class='backup-empty'>Nie utworzono jeszcze żadnej kopii zapasowej.</div>") +
-      "</div></section>"
-    : "<section class='settings-card settings-card--wide settings-card--locked'><div class='settings-card__icon'>" + icon("lock", 19) + "</div><div class='settings-card__content'><span class='section-label'>Dostęp administratora</span><h2>Import i kopie Firestore</h2><p>Import danych, tworzenie kopii oraz ich odzyskiwanie wymagają roli <b>admin</b>. Eksport jest dostępny dla każdego użytkownika.</p></div></section>";
+      "</div></section>";
 
-  return "<section class='settings-view'><header class='view-heading'><div><div class='eyebrow'>Dane aplikacji</div><h1>Ustawienia</h1><p>Przenoś procedury między środowiskami i zarządzaj bezpiecznymi kopiami danych.</p></div></header><div class='settings-grid'>" +
+  return "<section class='settings-view'><header class='view-heading'><div><div class='eyebrow'>Administracja</div><h1>Ustawienia</h1><p>Zarządzaj preferencjami, eksportem danych oraz bezpiecznymi kopiami procedur.</p></div></header><div class='settings-grid'>" +
+    personalSettings +
     "<section class='settings-card'><div class='settings-card__icon'>" + icon("copy", 19) + "</div><div class='settings-card__content'><span class='section-label'>Archiwum lokalne</span><h2>Eksport do JSON</h2><p>Pobierz aktualny, przenośny zapis wszystkich procedur bez danych logowania ani historii zmian.</p><div class='settings-card__actions'>" + button("Pobierz JSON", "export-procedures", { icon: "copy", variant: "primary" }) + "</div></div></section>" +
-    (isAdmin ? "<section class='settings-card'><div class='settings-card__icon'>" + icon("plus", 19) + "</div><div class='settings-card__content'><span class='section-label'>Cloud Firestore</span><h2>Import z JSON</h2><p>Wczytaj wcześniej wyeksportowany plik. Identyczne procedury są pomijane; nowe i zmienione są zapisywane bez odświeżania strony.</p><input id='import-procedures-file' class='visually-hidden' type='file' accept='application/json,.json'><div class='settings-card__actions'>" + button("Wybierz plik JSON", "select-import-file", { icon: "plus" }) + "</div></div></section>" : "") +
-    (isAdmin ? "<section class='settings-card'><div class='settings-card__icon'>" + icon("refresh", 19) + "</div><div class='settings-card__content'><span class='section-label'>Migracja jednorazowa</span><h2>Importuj procedury.json</h2><p>Przenieś archiwalne procedury oraz  wpisy historii do Firestore. Ponowne uruchomienie nie utworzy duplikatów.</p><div class='settings-card__actions'>" + button(migrationBusy ? "Trwa migracja…" : "Uruchom migrację", "migrate-legacy-json", { icon: "refresh", variant: "primary", disabled: migrationBusy }) + "</div><span class='settings-card__hint'>" + escapeHtml(migrationSummary) + "</span></div></section>" : "") +
+    "<section class='settings-card'><div class='settings-card__icon'>" + icon("plus", 19) + "</div><div class='settings-card__content'><span class='section-label'>Cloud Firestore</span><h2>Import z JSON</h2><p>Wczytaj wcześniej wyeksportowany plik. Identyczne procedury są pomijane; nowe i zmienione są zapisywane bez odświeżania strony.</p><input id='import-procedures-file' class='visually-hidden' type='file' accept='application/json,.json'><div class='settings-card__actions'>" + button("Wybierz plik JSON", "select-import-file", { icon: "plus" }) + "</div></div></section>" +
+    "<section class='settings-card'><div class='settings-card__icon'>" + icon("refresh", 19) + "</div><div class='settings-card__content'><span class='section-label'>Migracja jednorazowa</span><h2>Importuj procedury.json</h2><p>Przenieś archiwalne procedury oraz wpisy historii do Firestore. Ponowne uruchomienie nie utworzy duplikatów.</p><div class='settings-card__actions'>" + button(migrationBusy ? "Trwa migracja…" : "Uruchom migrację", "migrate-legacy-json", { icon: "refresh", variant: "primary", disabled: migrationBusy }) + "</div><span class='settings-card__hint'>" + escapeHtml(migrationSummary) + "</span></div></section>" +
     adminTools +
     "</div></section>";
 }
@@ -1036,12 +1046,21 @@ app.addEventListener("click", async function (event) {
     setMobileNav(!state.mobileNavOpen);
   } else if (action === "toggle-theme") {
     applyTheme(state.theme === "dark" ? "light" : "dark");
+  } else if (action === "set-theme") {
+    const theme = element.dataset.theme === "dark" ? "dark" : "light";
+    applyTheme(theme);
+    showToast("Zapisano " + (theme === "dark" ? "ciemny" : "jasny") + " motyw.", "success");
   } else if (action === "refresh-data") {
     await loadData();
     showToast(state.status === "ready" ? "Rejestr został odświeżony." : "Nie udało się odświeżyć danych.", state.status === "ready" ? "success" : "error");
   } else if (action === "export-procedures") {
-    downloadProceduresJson();
-    showToast("Pobrano eksport procedur w formacie JSON.", "success");
+    try {
+      if (!canDeleteProcedures()) throw new Error("Eksport danych jest dostępny tylko dla roli admin.");
+      downloadProceduresJson();
+      showToast("Pobrano eksport procedur w formacie JSON.", "success");
+    } catch (error) {
+      showToast(error.message || "Nie udało się wyeksportować procedur.", "error");
+    }
   } else if (action === "select-import-file") {
     const fileInput = document.getElementById("import-procedures-file");
     if (fileInput) fileInput.click();
