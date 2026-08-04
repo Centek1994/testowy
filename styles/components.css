@@ -8,9 +8,10 @@
 }
 .sidebar__brand { display: flex; align-items: center; gap: 11px; min-height: 46px; padding: 4px 8px 18px; border-bottom: 1px solid var(--sidebar-line); }
 .brand-mark {
-  display: grid; flex: 0 0 auto; place-items: center; width: 34px; height: 34px; border-radius: 11px;
-  color: #fff; background: linear-gradient(135deg, #9896ff, #5958dc); box-shadow: 0 7px 17px rgba(101, 98, 242, .34);
+  display: grid; flex: 0 0 auto; place-items: center; width: 36px; height: 36px; overflow: hidden; border: 1px solid rgba(255,255,255,.34); border-radius: 50%;
+  background: #fff; box-shadow: 0 7px 17px rgba(4, 8, 20, .32);
 }
+.brand-mark img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .brand-copy { min-width: 0; overflow: hidden; white-space: nowrap; }
 .brand-copy strong { display: block; font-size: 13px; letter-spacing: -.02em; }
 .brand-copy span { display: block; margin-top: 1px; color: var(--sidebar-muted); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
