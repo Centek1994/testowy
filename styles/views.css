@@ -23,9 +23,9 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
-.stat-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 108px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-sm); color: var(--text); font: inherit; text-align: center; }
-.stat-card__icon { display: grid; place-items: center; width: 34px; height: 34px; margin-inline: auto; border-radius: 10px; background: var(--brand-soft); color: var(--brand); }
-.stat-card > div { display: grid; justify-items: center; }
+.stat-card { display: grid; justify-items: center; width: 100%; min-height: 108px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-sm); color: var(--text); font: inherit; text-align: center; }
+.stat-card__icon { position: relative; display: block; width: 34px; height: 34px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); }
+.stat-card__icon .icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 .stat-card strong, .stat-card span { display: block; }
 .stat-card strong { overflow: hidden; max-width: 145px; color: var(--text); font-family: "DM Mono", monospace; font-size: 16px; font-weight: 500; letter-spacing: -.06em; text-overflow: ellipsis; white-space: nowrap; }
 .stat-card span:not(.stat-card__icon) { margin-top: 2px; color: var(--text-muted); font-size: 10px; font-weight: 700; }
