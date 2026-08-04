@@ -24,7 +24,11 @@ const DEPARTMENT_LOGOS = {
   dmv: "./dmv_logo-BH-guDB4.png",
   hhs: "./hhs_dark_logo-CODVnXDo.png",
   irs: "./irs_dark_logo-Ce0G8mme.png",
-  irsci: "./irs_ci_logo-pzSvsn3Z.png"
+  irsci: "./irs_ci_logo-pzSvsn3Z.png",
+  sb: "./Seal Bar.png",
+  oag: "./Seal OAG.png",
+  sup: "./Seal Court.png",
+  mec: "./CORONER1.png"
 };
 
 function activeView(name, department) {
