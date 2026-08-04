@@ -779,41 +779,6 @@ function drawOfficialSeal(context, x, y, size, ink) {
   context.restore();
 }
 
-function drawInkSeal(context, image, x, y, size, ink) {
-  const stamp = document.createElement("canvas");
-  const stampSize = Math.max(360, Math.round(size * 2));
-  stamp.width = stampSize;
-  stamp.height = stampSize;
-  const stampContext = stamp.getContext("2d", { willReadFrequently: true });
-  if (!stampContext) throw new Error("Nie udało się przygotować pieczęci.");
-  stampContext.drawImage(image, 0, 0, stampSize, stampSize);
-  const pixels = stampContext.getImageData(0, 0, stampSize, stampSize);
-  for (let index = 0; index < pixels.data.length; index += 4) {
-    const red = pixels.data[index];
-    const green = pixels.data[index + 1];
-    const blue = pixels.data[index + 2];
-    const brightness = red * .2126 + green * .7152 + blue * .0722;
-    const saturation = Math.max(red, green, blue) - Math.min(red, green, blue);
-    const coverage = Math.max(0, Math.min(1, (244 - brightness) / 165 + saturation / 580));
-    if (coverage < .08) {
-      pixels.data[index + 3] = 0;
-      continue;
-    }
-    const grain = .72 + ((index / 4 * 17) % 19) / 100;
-    pixels.data[index] = 16;
-    pixels.data[index + 1] = 44;
-    pixels.data[index + 2] = 88;
-    pixels.data[index + 3] = Math.round(pixels.data[index + 3] * Math.min(.92, coverage * grain));
-  }
-  stampContext.putImageData(pixels, 0, 0);
-  context.save();
-  context.translate(x + size / 2, y + size / 2);
-  context.rotate(-0.045);
-  context.globalAlpha = .84;
-  context.drawImage(stamp, -size / 2, -size / 2, size, size);
-  context.restore();
-}
-
 function drawCanvasSignature(context, name, x, y, maxWidth) {
   const text = String(name || "").trim();
   let fontSize = 40;
@@ -874,8 +839,8 @@ async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTit
   let sealImage = null;
   drawOfficialSeal(context, 1304, 62, 132, navy);
   try {
-    sealImage = await loadCanvasImage("./great_seal-Daa0xzsN.png");
-    drawInkSeal(context, sealImage, 1304, 62, 132, navy);
+    sealImage = await loadCanvasImage("./pieczatka.png");
+    context.drawImage(sealImage, 1304, 62, 132, 132);
   } catch (error) {
     // Okrągła pieczęć zastępcza została narysowana przed wczytaniem pliku.
   }
@@ -927,7 +892,7 @@ async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTit
   drawOfficialSeal(context, 1125, 775, 180, navy);
   if (sealImage) {
     try {
-      drawInkSeal(context, sealImage, 1125, 775, 180, navy);
+      context.drawImage(sealImage, 1125, 775, 180, 180);
     } catch (error) {
       // Zostaje narysowany wcześniej stempel zastępczy.
     }
