@@ -68,6 +68,7 @@ function viewMeta() {
   }
   const meta = {
     dashboard: ["Centrum dowodzenia", "Dashboard"],
+    all: ["Centrum procedur", "Wszystkie procedury"],
     favorites: ["Twoja przestrzeń", "Ulubione"],
     recents: ["Twoja przestrzeń", "Ostatnio używane"],
     activity: ["Rejestr zmian", "Historia zmian"],
@@ -116,10 +117,10 @@ function dashboardView() {
       button("Przeglądaj działy", "navigate", { icon: "building", extra: "data-view='department' data-dept='go'" }) +
     "</div></div><div class='hero-orbit' aria-hidden='true'><div class='hero-orbit__core'><img src='./great_seal-Daa0xzsN.png' alt=''></div><i></i><b></b></div></div>" +
     "<div class='stat-grid'>" +
-      statCard(String(state.data.procedures.length), "aktywnych procedur", "command", "brand") +
-      statCard(String(state.favoriteIds.size), "ulubionych procedur", "star", "gold") +
-      statCard(String(state.recentIds.length), "ostatnio używanych", "clock", "teal") +
-      statCard(lastUpdated, "ostatnia aktualizacja", "activity", "muted") +
+      statCard(String(state.data.procedures.length), "aktywnych procedur", "command", "brand", "all") +
+      statCard(String(state.favoriteIds.size), "ulubionych procedur", "star", "gold", "favorites") +
+      statCard(String(state.recentIds.length), "ostatnio używanych", "clock", "teal", "recents") +
+      statCard(lastUpdated, "ostatnia aktualizacja", "activity", "muted", "activity") +
     "</div>" +
     "<div class='dashboard-grid'><section class='dashboard-panel dashboard-panel--wide'><div class='panel-heading'><div><span class='section-label'>Kontynuuj pracę</span><h2>Ostatnio używane</h2></div>" + button("Zobacz wszystkie", "navigate", { small: true, variant: "ghost", extra: "data-view='recents'" }) + "</div>" +
       (recents.length ? "<div class='quick-procedure-list'>" + recents.slice(0, 5).map(function (procedure) { return quickProcedure(procedure); }).join("") + "</div>" : emptyInline("Nie otwarto jeszcze żadnej procedury.", "Otwórz wyszukiwarkę", "open-palette")) +
@@ -136,8 +137,11 @@ function dashboardView() {
     "</section></section>";
 }
 
-function statCard(value, label, iconName, tone) {
-  return "<div class='stat-card stat-card--" + tone + "'><span class='stat-card__icon'>" + icon(iconName, 17) + "</span><div><strong>" + escapeHtml(value) + "</strong><span>" + escapeHtml(label) + "</span></div></div>";
+function statCard(value, label, iconName, tone, view) {
+  const tag = view ? "button" : "div";
+  const action = view ? " type='button' data-action='navigate' data-view='" + escapeHtml(view) + "'" : "";
+  const clickable = view ? " stat-card--clickable" : "";
+  return "<" + tag + " class='stat-card stat-card--" + tone + clickable + "'" + action + "><span class='stat-card__icon'>" + icon(iconName, 17) + "</span><div><strong>" + escapeHtml(value) + "</strong><span>" + escapeHtml(label) + "</span></div></" + tag + ">";
 }
 
 function emptyInline(text, actionLabel, action) {
@@ -256,6 +260,7 @@ function mainView() {
   if (state.status === "loading") return "<section class='loading-view'><div class='loading-mark'>" + icon("building", 24) + "</div><h1>Ładowanie rejestru</h1><p>Pobieram najnowszą wersję procedur…</p></section>";
   if (state.status === "error") return emptyState("Nie udało się wczytać rejestru", "Sprawdź konfigurację Firebase, reguły Cloud Firestore oraz połączenie z internetem.", "warning", button("Spróbuj ponownie", "refresh-data", { icon: "refresh", variant: "primary" }));
   if (state.view.name === "dashboard") return dashboardView();
+  if (state.view.name === "all") return titledListView("Wszystkie procedury", "Centrum procedur", state.data.procedures, "Brak procedur", "Nie ma jeszcze procedur w kolekcji Firestore.");
   if (state.view.name === "department") return departmentView();
   if (state.view.name === "favorites") return titledListView("Ulubione", "Twoja przestrzeń", favoriteProcedures(), "Brak ulubionych", "Oznacz gwiazdką procedury, które chcesz mieć zawsze pod ręką.");
   if (state.view.name === "recents") return titledListView("Ostatnio używane", "Twoja przestrzeń", recentProcedures(), "Brak ostatnio używanych", "Otwórz procedurę, a pojawi się w tej sekcji.");
@@ -278,6 +283,7 @@ function palette() {
   const searching = query.trim() && isSearchingProcedures(query);
   const commands = [
     { label: "Przejdź do dashboardu", meta: "Widok główny", icon: "dashboard", action: "palette-navigate", view: "dashboard" },
+    { label: "Pokaż wszystkie procedury", meta: String(state.data.procedures.length) + " procedur", icon: "command", action: "palette-navigate", view: "all" },
     { label: "Otwórz ulubione", meta: String(state.favoriteIds.size) + " procedur", icon: "star", action: "palette-navigate", view: "favorites" },
     { label: "Przełącz motyw", meta: state.theme === "dark" ? "Włącz jasny motyw" : "Włącz ciemny motyw", icon: state.theme === "dark" ? "sun" : "moon", action: "toggle-theme" }
   ];

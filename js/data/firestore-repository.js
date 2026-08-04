@@ -17,8 +17,29 @@ function logFromSnapshot(snapshot) {
     type: data.type || "update",
     procedureId: data.procedureId || null,
     procedureTitle: data.procedureTitle || "Nieznana procedura",
-    user: data.userName || data.userEmail || data.userId || "Nieznany użytkownik"
+    user: data.userName || data.userEmail || data.userId || "Nieznany użytkownik",
+    createdAtMillis: data.createdAt && typeof data.createdAt.toMillis === "function" ? data.createdAt.toMillis() : 0
   };
+}
+
+function logDateTimeValue(entry) {
+  const date = String(entry.date || "").trim();
+  const time = String(entry.time || "00:00:00").trim();
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const legacy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(date);
+  const match = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(time);
+  if (!match || (!iso && !legacy)) return Number(entry.createdAtMillis || 0);
+  const year = Number(iso ? iso[1] : legacy[3]);
+  const month = Number(iso ? iso[2] : legacy[1]);
+  const day = Number(iso ? iso[3] : legacy[2]);
+  return Date.UTC(year, month - 1, day, Number(match[1]), Number(match[2]), Number(match[3] || 0));
+}
+
+function sortedLogEntries(entries) {
+  return entries.sort(function (left, right) {
+    const byRecordedDate = logDateTimeValue(right) - logDateTimeValue(left);
+    return byRecordedDate || Number(right.createdAtMillis || 0) - Number(left.createdAtMillis || 0);
+  });
 }
 
 function actor(services) {
@@ -170,7 +191,7 @@ export async function readRegistry() {
   ]);
   return {
     procedures: snapshots[0].docs.map(procedureFromSnapshot),
-    log: snapshots[1].docs.map(logFromSnapshot)
+    log: sortedLogEntries(snapshots[1].docs.map(logFromSnapshot))
   };
 }
 
@@ -214,7 +235,7 @@ export async function subscribeToRegistry(onChange, onError) {
   }, onError);
 
   const unsubscribeLogs = firestore.onSnapshot(logsQuery, function (snapshot) {
-    log = snapshot.docs.map(logFromSnapshot);
+    log = sortedLogEntries(snapshot.docs.map(logFromSnapshot));
     publish();
   }, onError);
 

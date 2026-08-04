@@ -23,11 +23,14 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
-.stat-card { display: flex; align-items: center; gap: 12px; min-height: 85px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-sm); }
+.stat-card { display: grid; justify-items: center; width: 100%; min-height: 108px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-sm); color: var(--text); font: inherit; text-align: center; }
 .stat-card__icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); }
 .stat-card strong, .stat-card span { display: block; }
 .stat-card strong { overflow: hidden; max-width: 145px; color: var(--text); font-family: "DM Mono", monospace; font-size: 16px; font-weight: 500; letter-spacing: -.06em; text-overflow: ellipsis; white-space: nowrap; }
 .stat-card span:not(.stat-card__icon) { margin-top: 2px; color: var(--text-muted); font-size: 10px; font-weight: 700; }
+.stat-card--clickable { cursor: pointer; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+.stat-card--clickable:hover { border-color: color-mix(in srgb, var(--brand) 37%, var(--line)); box-shadow: 0 9px 21px rgba(26, 35, 56, .1); transform: translateY(-2px); }
+.stat-card--clickable:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand) 38%, transparent); outline-offset: 2px; }
 .stat-card--gold .stat-card__icon { background: var(--gold-soft); color: var(--gold); }
 .stat-card--teal .stat-card__icon { background: var(--teal-soft); color: var(--teal); }
 .stat-card--muted .stat-card__icon { background: var(--bg-subtle); color: var(--text-muted); }
