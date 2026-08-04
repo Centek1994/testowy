@@ -863,6 +863,8 @@ async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTit
     try {
       context.save();
       context.globalAlpha = .5;
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
       context.drawImage(sealImage, 1145, 805, 140, 140);
       context.restore();
     } catch (error) {
