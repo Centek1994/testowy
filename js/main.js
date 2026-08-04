@@ -751,34 +751,6 @@ async function loadCanvasImage(source) {
   }
 }
 
-function drawOfficialSeal(context, x, y, size, ink) {
-  const center = x + size / 2;
-  context.save();
-  context.translate(center, y + size / 2);
-  context.rotate(-0.045);
-  context.globalAlpha = .78;
-  context.strokeStyle = ink;
-  context.lineWidth = Math.max(2, Math.round(size * .045));
-  context.beginPath();
-  context.arc(0, 0, size / 2 - 5, 0, Math.PI * 2);
-  context.stroke();
-  context.setLineDash([Math.max(2, size * .024), Math.max(2, size * .018)]);
-  context.lineWidth = Math.max(1.5, Math.round(size * .018));
-  context.beginPath();
-  context.arc(0, 0, size / 2 - Math.max(12, size * .12), 0, Math.PI * 2);
-  context.stroke();
-  context.setLineDash([]);
-  context.fillStyle = ink;
-  context.font = "700 " + Math.round(size * .065) + "px Arial, sans-serif";
-  context.textAlign = "center";
-  context.fillText("STATE CAPITOL", 0, -size * .23);
-  context.font = "700 " + Math.round(size * .25) + "px Georgia, serif";
-  context.fillText("SC", 0, size * .09);
-  context.font = "700 " + Math.round(size * .058) + "px Arial, sans-serif";
-  context.fillText("SAN ANDREAS", 0, size * .29);
-  context.restore();
-}
-
 function drawCanvasSignature(context, name, x, y, maxWidth) {
   const text = String(name || "").trim();
   let fontSize = 40;
@@ -837,12 +809,10 @@ async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTit
   context.fillText("SAN ANDREAS · CENTRUM PROCEDUR", 125, 163);
 
   let sealImage = null;
-  drawOfficialSeal(context, 1304, 62, 132, navy);
   try {
     sealImage = await loadCanvasImage("./pieczatka.png");
-    context.drawImage(sealImage, 1304, 62, 132, 132);
   } catch (error) {
-    // Okrągła pieczęć zastępcza została narysowana przed wczytaniem pliku.
+    // Brak pieczęci nie blokuje wygenerowania potwierdzenia.
   }
 
   context.textAlign = "center";
@@ -889,12 +859,14 @@ async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTit
   context.moveTo(1010, signatureY);
   context.lineTo(1420, signatureY);
   context.stroke();
-  drawOfficialSeal(context, 1125, 775, 180, navy);
   if (sealImage) {
     try {
-      context.drawImage(sealImage, 1125, 775, 180, 180);
+      context.save();
+      context.globalAlpha = .5;
+      context.drawImage(sealImage, 1145, 805, 140, 140);
+      context.restore();
     } catch (error) {
-      // Zostaje narysowany wcześniej stempel zastępczy.
+      // Brak pieczęci nie blokuje wygenerowania potwierdzenia.
     }
     if (typeof sealImage.close === "function") sealImage.close();
   }
@@ -906,7 +878,7 @@ async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTit
   context.font = "600 14px Arial, sans-serif";
   context.fillStyle = muted;
   context.fillText("PODPIS OSOBY WYDAJĄCEJ", 385, signatureY + 34);
-  context.fillText("PIECZĘĆ STATE CAPITOL", 1215, signatureY + 30);
+  context.fillText("PIECZĘĆ", 1215, signatureY + 30);
   context.font = "600 13px Arial, sans-serif";
   context.fillText("Data wygenerowania: " + issueTimestamp(), 1215, signatureY + 57);
   context.font = "400 13px Arial, sans-serif";
