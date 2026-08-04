@@ -1,6 +1,6 @@
 import { DEPARTMENTS, DEPARTMENT_NOTE, ORGANIZATION } from "./config.js";
 import {
-  addOrUpdateProcedure, applyTheme, canDeleteProcedures, createBackup, departmentsWithCounts, exportProceduresAsJson,
+  addOrUpdateProcedure, applyTheme, canDeleteProcedures, createBackup, departmentFor, departmentsWithCounts, exportProceduresAsJson,
   favoriteProcedures, findProcedure, importProceduresFromJson, initialize, isFavorite, isSearchingProcedures, loadData,
   lock, migrateLegacyProcedures, navigate, notify, openProcedure, procedureText, recentProcedures, refreshBackups, removeProcedure,
   restoreBackup, searchProcedures, setMobileNav, setModal, setPalette, setSearch, setSidebarCompact,
