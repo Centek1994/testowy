@@ -36,7 +36,7 @@ function sidebar() {
   const civic = departments.filter(function (department) { return department.group === "civic"; });
   const legal = departments.filter(function (department) { return department.group === "legal"; });
   return "<aside class='sidebar' aria-label='Nawigacja główna'>" +
-    "<div class='sidebar__brand'><div class='brand-mark'>" + icon("building", 18) + "</div><div class='brand-copy'><strong>State Capitol</strong><span>Centrum procedur</span></div></div>" +
+    "<div class='sidebar__brand'><div class='brand-mark'><img src='./great_seal-Daa0xzsN.png' alt='Wielka Pieczęć Stanu San Andreas'></div><div class='brand-copy'><strong>State Capitol</strong><span>Centrum procedur</span></div></div>" +
     "<div class='sidebar__section'><div class='side-nav'>" +
       navButton("Dashboard", "dashboard", "dashboard") +
       navButton("Ulubione", "star", "favorites", { count: state.favoriteIds.size }) +
@@ -114,7 +114,7 @@ function dashboardView() {
     "<div class='page-hero'><div><div class='eyebrow'>State Capitol / operacje</div><h1>Wszystkie procedury,<br><em>zawsze pod ręką.</em></h1><p>Przejrzysta baza wiedzy dla zespołu State Capitol. Otwieraj, kopiuj, drukuj i prowadź ceremonie bez szukania po wiadomościach.</p><div class='page-hero__actions'>" +
       button("Otwórz wyszukiwarkę", "open-palette", { icon: "search", variant: "primary" }) +
       button("Przeglądaj działy", "navigate", { icon: "building", extra: "data-view='department' data-dept='go'" }) +
-    "</div></div><div class='hero-orbit'><div class='hero-orbit__core'>" + icon("building", 30) + "<span>SC</span></div><i></i><b></b></div></div>" +
+    "</div></div><div class='hero-orbit' aria-hidden='true'><div class='hero-orbit__core'><img src='./great_seal-Daa0xzsN.png' alt=''></div><i></i><b></b></div></div>" +
     "<div class='stat-grid'>" +
       statCard(String(state.data.procedures.length), "aktywnych procedur", "command", "brand") +
       statCard(String(state.favoriteIds.size), "ulubionych procedur", "star", "gold") +
