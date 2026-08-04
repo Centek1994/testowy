@@ -1,4 +1,5 @@
 import { icon } from "./icons.js";
+import { LICENSE_FEES } from "../config.js";
 import { canDeleteProcedures, departmentFor, isFavorite, state } from "../core/store.js";
 
 export function escapeHtml(value) {
@@ -59,6 +60,14 @@ export function emptyState(title, text, iconName = "search", actionHtml = "") {
   return "<section class='empty-state'><div><div class='empty-state__icon'>" + icon(iconName, 22) + "</div><h2>" + escapeHtml(title) + "</h2><p>" + escapeHtml(text) + "</p>" + (actionHtml ? "<div class='empty-state__actions'>" + actionHtml + "</div>" : "") + "</div></section>";
 }
 
+function licenseFeesSection(procedure) {
+  const fees = LICENSE_FEES[procedure.id];
+  if (!fees) return "";
+  return "<section class='document-section'><div class='section-label'>Opłaty koncesyjne</div><div class='license-fees'><table class='license-fees__table'><thead><tr><th>Rodzaj koncesji</th><th>Dystrybucja / sprzedaż</th><th>Produkcja</th></tr></thead><tbody>" + fees.map(function (fee) {
+    return "<tr><th scope='row'>" + escapeHtml(fee.type) + "</th><td>" + escapeHtml(fee.sales) + "</td><td>" + escapeHtml(fee.production) + "</td></tr>";
+  }).join("") + "</tbody></table></div></section>";
+}
+
 export function procedureSections(procedure) {
   const sections = [];
   if (procedure.steps && procedure.steps.length) {
@@ -67,6 +76,8 @@ export function procedureSections(procedure) {
     }).join("");
     sections.push("<section class='document-section'><div class='section-label'>Przebieg procedury</div><ol class='document-steps'>" + steps + "</ol></section>");
   }
+  const fees = licenseFeesSection(procedure);
+  if (fees) sections.push(fees);
   if (procedure.notes) {
     sections.push("<section class='document-section'><div class='section-label'>Uwagi i przepisy</div><div class='document-note'>" + linkify(procedure.notes) + "</div></section>");
   }

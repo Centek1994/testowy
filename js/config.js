@@ -28,6 +28,22 @@ export const DEPARTMENTS = [
 
 export const DEPARTMENT_NOTE = "Każdy pracownik State Capitolu, także działów prawno-śledczych, wykonuje zadania związane z działami obywatelskimi.";
 
+export const LICENSE_FEES = {
+  "go-4": [
+    { type: "Wyroby tytoniowe i nikotynowe", sales: "$2 000", production: "$15 000" },
+    { type: "Alkohol – piwo, wino, szampan", sales: "$4 000", production: "$21 000" },
+    { type: "Alkohol wysokoprocentowy", sales: "$6 000", production: "$30 000" },
+    { type: "Marihuana", sales: "$7 000", production: "$21 000" }
+  ],
+  "oag-3": [
+    { type: "Broń palna i amunicja", sales: "$15 000", production: "$45 000" },
+    { type: "Strzelnica", sales: "$5 000", production: "—" }
+  ],
+  "irs-8": [
+    { type: "Hazard i gry losowe", sales: "$85 000", production: "—" }
+  ]
+};
+
 export const ORGANIZATION = {
   civic: "Director oraz Deputy Director konkretnego działu.",
   legal: [
