@@ -505,7 +505,7 @@ function adminLoginModal() {
 function issueConfirmationModal(id) {
   const procedure = findProcedure(id);
   if (!procedure) return modalShell("Nie znaleziono procedury", "<p class='modal-copy'>Nie można przygotować potwierdzenia dla nieistniejącej procedury.</p>", button("Zamknij", "close-modal", { variant: "primary" }), true);
-  const body = "<form id='issue-confirmation-form' class='form-grid' data-form='issue-confirmation'><input type='hidden' name='id' value='" + escapeHtml(procedure.id) + "'><div class='field'><label for='issue-document-number'>Numer wydanego dokumentu</label><input id='issue-document-number' required name='document-number' autocomplete='off' placeholder='Np. HHS/2026/00421'><span class='field__hint'>Wpisz numer wygenerowany w systemie źródłowym. Nie jest on zapisywany w bazie danych.</span></div><div class='field'><label for='issue-issued-by'>Osoba wydająca</label><input id='issue-issued-by' required name='issued-by' autocomplete='name' placeholder='Imię i nazwisko osoby wydającej'></div></form>";
+  const body = "<form id='issue-confirmation-form' class='form-grid' data-form='issue-confirmation'><input type='hidden' name='id' value='" + escapeHtml(procedure.id) + "'><div class='field'><label for='issue-document-number'>Numer wydanego dokumentu</label><input id='issue-document-number' required name='document-number' autocomplete='off' placeholder='Np. HHS/2026/00421'><span class='field__hint'>Wpisz numer wygenerowany w systemie źródłowym. Nie jest on zapisywany w bazie danych.</span></div><div class='field'><label for='issue-issued-by'>Osoba wydająca</label><input id='issue-issued-by' required name='issued-by' autocomplete='name' placeholder='Imię i nazwisko osoby wydającej'></div><label class='issue-note-toggle' for='issue-additional-note-toggle'><input id='issue-additional-note-toggle' type='checkbox'><span>Chcę dopisać dodatkową informację</span></label><div id='issue-additional-note-field' class='field' hidden><label for='issue-additional-note'>Dodatkowa informacja</label><textarea id='issue-additional-note' name='additional-note' maxlength='300' disabled placeholder='Wpisz treść, która ma pojawić się na potwierdzeniu.'></textarea><span class='field__hint'>Treść jest dodawana tylko do tego potwierdzenia i nie jest zapisywana w bazie.</span></div></form>";
   const footer = button("Anuluj", "close-modal", { variant: "ghost" }) +
     "<button class='button' type='submit' form='issue-confirmation-form' data-format='clipboard'>" + icon("copy", 15) + "<span>Kopiuj obraz</span></button>" +
     "<button class='button' type='submit' form='issue-confirmation-form' data-format='jpeg'>" + icon("copy", 15) + "<span>Pobierz JPG</span></button>" +
@@ -773,7 +773,7 @@ function canvasToBlob(canvas, type) {
   });
 }
 
-async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTitle, format) {
+async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTitle, additionalNote, format) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Przeglądarka nie obsługuje generowania dokumentów.");
@@ -787,6 +787,7 @@ async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTit
   const paper = "#fcfaf3";
   const ink = "#17243a";
   const muted = "#59677c";
+  const note = String(additionalNote || "").trim();
 
   context.fillStyle = paper;
   context.fillRect(0, 0, width, height);
@@ -850,6 +851,18 @@ async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTit
   context.fillStyle = ink;
   context.fillText(issuedBy, width / 2, issuerTop + 38);
 
+  if (note) {
+    const noteTop = Math.min(855, issuerTop + 72);
+    context.textAlign = "left";
+    context.font = "700 13px Arial, sans-serif";
+    context.fillStyle = muted;
+    context.fillText("DODATKOWA INFORMACJA", 180, noteTop);
+    context.font = "400 19px Arial, sans-serif";
+    context.fillStyle = ink;
+    drawCanvasParagraph(context, note, 180, noteTop + 30, 790, 25, 3);
+    context.textAlign = "center";
+  }
+
   const signatureY = 980;
   context.strokeStyle = "#8f9db0";
   context.lineWidth = 2;
@@ -889,12 +902,12 @@ async function createIssueConfirmationBlob(documentNumber, issuedBy, documentTit
   return canvasToBlob(canvas, format === "jpeg" ? "image/jpeg" : "image/png");
 }
 
-async function downloadIssueConfirmation(documentNumber, issuedBy, documentTitle, format) {
+async function downloadIssueConfirmation(documentNumber, issuedBy, documentTitle, additionalNote, format) {
   const number = String(documentNumber || "").trim();
   const issuer = String(issuedBy || "").trim();
   if (!number) throw new Error("Wpisz numer wydanego dokumentu.");
   if (!issuer) throw new Error("Wpisz osobę wydającą dokument.");
-  const blob = await createIssueConfirmationBlob(number, issuer, documentTitle, format);
+  const blob = await createIssueConfirmationBlob(number, issuer, documentTitle, additionalNote, format);
   const extension = format === "jpeg" ? "jpg" : "png";
   const safeNumber = number.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "dokument";
   const link = document.createElement("a");
@@ -907,7 +920,7 @@ async function downloadIssueConfirmation(documentNumber, issuedBy, documentTitle
   window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 0);
 }
 
-async function copyIssueConfirmationToClipboard(documentNumber, issuedBy, documentTitle) {
+async function copyIssueConfirmationToClipboard(documentNumber, issuedBy, documentTitle, additionalNote) {
   const number = String(documentNumber || "").trim();
   const issuer = String(issuedBy || "").trim();
   if (!number) throw new Error("Wpisz numer wydanego dokumentu.");
@@ -917,7 +930,7 @@ async function copyIssueConfirmationToClipboard(documentNumber, issuedBy, docume
     throw new Error("Kopiowanie obrazu wymaga aktualnej przeglądarki oraz adresu HTTPS (z kłódką przy adresie strony).");
   }
   // Przekazanie obietnicy od razu po kliknięciu zachowuje zgodę przeglądarki na zapis obrazu do schowka.
-  const imagePromise = createIssueConfirmationBlob(number, issuer, documentTitle, "png");
+  const imagePromise = createIssueConfirmationBlob(number, issuer, documentTitle, additionalNote, "png");
   try {
     await navigator.clipboard.write([new ClipboardItemConstructor({ "image/png": imagePromise })]);
   } catch (error) {
@@ -1128,6 +1141,17 @@ app.addEventListener("input", function (event) {
 });
 
 app.addEventListener("change", async function (event) {
+  if (event.target.id === "issue-additional-note-toggle") {
+    const field = document.getElementById("issue-additional-note-field");
+    const input = document.getElementById("issue-additional-note");
+    const enabled = event.target.checked;
+    if (field) field.hidden = !enabled;
+    if (input) {
+      input.disabled = !enabled;
+      if (enabled) window.setTimeout(function () { input.focus(); }, 0);
+    }
+    return;
+  }
   if (event.target.id === "import-procedures-file") {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
@@ -1194,11 +1218,11 @@ app.addEventListener("submit", async function (event) {
     try {
       if (!procedure) throw new Error("Nie znaleziono procedury do potwierdzenia.");
       if (output === "clipboard") {
-        await copyIssueConfirmationToClipboard(formData.get("document-number"), formData.get("issued-by"), procedure.title);
+        await copyIssueConfirmationToClipboard(formData.get("document-number"), formData.get("issued-by"), procedure.title, formData.get("additional-note"));
         showToast("Skopiowano potwierdzenie wydania jako obraz PNG.", "success");
       } else {
         const format = output === "jpeg" ? "jpeg" : "png";
-        await downloadIssueConfirmation(formData.get("document-number"), formData.get("issued-by"), procedure.title, format);
+        await downloadIssueConfirmation(formData.get("document-number"), formData.get("issued-by"), procedure.title, formData.get("additional-note"), format);
         showToast("Pobrano potwierdzenie wydania w formacie " + (format === "jpeg" ? "JPG" : "PNG") + ".", "success");
       }
     } catch (error) {

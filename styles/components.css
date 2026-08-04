@@ -131,6 +131,8 @@ kbd {
 .field textarea.code-area { min-height: 220px; font-family: "DM Mono", monospace; font-size: 11px; }
 .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent); }
 .field__hint { color: var(--text-faint); font-size: 10px; }
+.issue-note-toggle { display: inline-flex; align-items: center; gap: 9px; width: fit-content; color: var(--text); font-size: 12px; font-weight: 700; }
+.issue-note-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--brand); }
 .form-save-status { margin: -2px 0 0; color: var(--teal); font-size: 10px; font-weight: 700; }
 .form-save-status.is-error { color: var(--danger); }
 .field__label-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
