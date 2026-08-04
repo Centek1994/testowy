@@ -135,7 +135,7 @@ export function procedureDetail(procedure) {
       "<div class='detail-actions no-print'>" +
         "<button type='button' class='button " + (favorite ? "button--star is-on" : "button--star") + "' data-action='toggle-favorite' data-id='" + escapeHtml(procedure.id) + "'>" + icon("star", 15) + "<span>" + (favorite ? "Ulubiona" : "Ulubione") + "</span></button>" +
         button("Kopiuj", "copy-procedure", { id: procedure.id, icon: "copy" }) +
-        button("Drukuj", "print-procedure", { id: procedure.id, icon: "print" }) +
+        button("Potwierdzenie wydania", "open-issue-confirmation", { id: procedure.id, icon: "print" }) +
         button("Sufler", "open-teleprompter", { id: procedure.id, icon: "mic", variant: "primary" }) +
         edit +
       "</div>" +

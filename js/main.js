@@ -358,6 +358,7 @@ function modal() {
   if (state.modal.type === "delete") return deleteModal(state.modal.id);
   if (state.modal.type === "saved") return savedModal();
   if (state.modal.type === "admin-login") return adminLoginModal();
+  if (state.modal.type === "issue-confirmation") return issueConfirmationModal(state.modal.id);
   return "";
 }
 
@@ -491,6 +492,17 @@ function adminLoginModal() {
   return modalShell("Logowanie administratora", body, button("Anuluj", "close-modal", { variant: "ghost" }) + "<button class='button button--primary' type='submit' form='admin-login-form'>" + icon("unlock", 15) + "<span>Zaloguj i otwórz panel</span></button>", true);
 }
 
+function issueConfirmationModal(id) {
+  const procedure = findProcedure(id);
+  if (!procedure) return modalShell("Nie znaleziono procedury", "<p class='modal-copy'>Nie można przygotować potwierdzenia dla nieistniejącej procedury.</p>", button("Zamknij", "close-modal", { variant: "primary" }), true);
+  const department = departmentFor(procedure.dept);
+  const body = "<form id='issue-confirmation-form' class='form-grid' data-form='issue-confirmation'><input type='hidden' name='id' value='" + escapeHtml(procedure.id) + "'><div class='modal__notice'><b>Procedura:</b> " + escapeHtml(procedure.title) + "<br><b>Dział:</b> " + escapeHtml(department.name) + "</div><div class='field'><label for='issue-document-number'>Numer wydanego dokumentu</label><input id='issue-document-number' required name='document-number' autocomplete='off' placeholder='Np. HHS/2026/00421'><span class='field__hint'>Wpisz numer wygenerowany w systemie źródłowym. Nie jest on zapisywany w bazie danych.</span></div></form>";
+  const footer = button("Anuluj", "close-modal", { variant: "ghost" }) +
+    "<button class='button' type='submit' form='issue-confirmation-form' data-format='jpeg'>" + icon("copy", 15) + "<span>Pobierz JPG</span></button>" +
+    "<button class='button button--primary' type='submit' form='issue-confirmation-form' data-format='png'>" + icon("check", 15) + "<span>Pobierz PNG</span></button>";
+  return modalShell("Potwierdzenie wydania", body, footer, false, "Wygeneruj urzędowy kwitek potwierdzający wydanie dokumentu.");
+}
+
 function teleprompter() {
   const setting = state.teleprompter;
   if (!setting) return "";
@@ -538,6 +550,12 @@ function afterRender() {
   if (state.modal && state.modal.type === "admin-login") {
     window.setTimeout(function () {
       const input = document.getElementById("admin-email");
+      if (input) input.focus();
+    }, 0);
+  }
+  if (state.modal && state.modal.type === "issue-confirmation") {
+    window.setTimeout(function () {
+      const input = document.getElementById("issue-document-number");
       if (input) input.focus();
     }, 0);
   }
@@ -661,6 +679,181 @@ function downloadProceduresJson() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   link.href = URL.createObjectURL(blob);
   link.download = "procedures-" + timestamp + ".json";
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 0);
+}
+
+function issueTimestamp() {
+  return new Intl.DateTimeFormat("pl-PL", {
+    timeZone: "Europe/Warsaw",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date()).replace(",", " ·");
+}
+
+function drawCanvasParagraph(context, text, x, y, maxWidth, lineHeight, maxLines) {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+  const lines = [];
+  let currentLine = "";
+  words.forEach(function (word) {
+    const nextLine = currentLine ? currentLine + " " + word : word;
+    if (currentLine && context.measureText(nextLine).width > maxWidth) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else currentLine = nextLine;
+  });
+  if (currentLine) lines.push(currentLine);
+  lines.slice(0, maxLines).forEach(function (line, index) {
+    context.fillText(line, x, y + index * lineHeight);
+  });
+  return y + Math.min(lines.length, maxLines) * lineHeight;
+}
+
+function loadCanvasImage(source) {
+  return new Promise(function (resolve, reject) {
+    const image = new Image();
+    image.onload = function () { resolve(image); };
+    image.onerror = reject;
+    image.src = source;
+  });
+}
+
+function canvasToBlob(canvas, type) {
+  return new Promise(function (resolve, reject) {
+    canvas.toBlob(function (blob) {
+      if (blob) resolve(blob);
+      else reject(new Error("Nie udało się wygenerować obrazu."));
+    }, type, type === "image/jpeg" ? 0.94 : undefined);
+  });
+}
+
+async function createIssueConfirmationBlob(procedure, documentNumber, format) {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Przeglądarka nie obsługuje generowania dokumentów.");
+
+  canvas.width = 1600;
+  canvas.height = 1131;
+  const width = canvas.width;
+  const height = canvas.height;
+  const navy = "#102c58";
+  const gold = "#b48935";
+  const paper = "#fcfaf3";
+  const ink = "#17243a";
+  const muted = "#59677c";
+  const department = departmentFor(procedure.dept);
+
+  context.fillStyle = paper;
+  context.fillRect(0, 0, width, height);
+  context.strokeStyle = navy;
+  context.lineWidth = 16;
+  context.strokeRect(30, 30, width - 60, height - 60);
+  context.strokeStyle = gold;
+  context.lineWidth = 3;
+  context.strokeRect(54, 54, width - 108, height - 108);
+
+  context.fillStyle = navy;
+  context.fillRect(57, 57, width - 114, 166);
+  context.fillStyle = gold;
+  context.fillRect(57, 218, width - 114, 5);
+  context.fillStyle = "#ffffff";
+  context.font = "700 48px Georgia, serif";
+  context.fillText("STATE CAPITOL", 122, 127);
+  context.font = "600 20px Arial, sans-serif";
+  context.fillStyle = "#dbe6f6";
+  context.fillText("SAN ANDREAS · CENTRUM PROCEDUR", 125, 163);
+
+  try {
+    const seal = await loadCanvasImage("./great_seal-Daa0xzsN.png");
+    context.drawImage(seal, 1335, 72, 104, 104);
+  } catch (error) {
+    context.strokeStyle = "#dbe6f6";
+    context.lineWidth = 3;
+    context.beginPath();
+    context.arc(1387, 124, 48, 0, Math.PI * 2);
+    context.stroke();
+  }
+
+  context.textAlign = "center";
+  context.fillStyle = navy;
+  context.font = "700 44px Georgia, serif";
+  context.fillText("POTWIERDZENIE WYDANIA DOKUMENTU", width / 2, 304);
+  context.font = "600 17px Arial, sans-serif";
+  context.fillStyle = muted;
+  context.fillText("OFICJALNE POTWIERDZENIE CZYNNOŚCI W SYSTEMIE STATE CAPITOL", width / 2, 340);
+
+  context.fillStyle = "#edf2f8";
+  context.fillRect(220, 385, width - 440, 142);
+  context.strokeStyle = "#c5d2e2";
+  context.lineWidth = 2;
+  context.strokeRect(220, 385, width - 440, 142);
+  context.fillStyle = muted;
+  context.font = "700 15px Arial, sans-serif";
+  context.fillText("NUMER WYDANEGO DOKUMENTU", width / 2, 430);
+  context.fillStyle = navy;
+  context.font = "700 36px 'DM Mono', Consolas, monospace";
+  context.fillText(documentNumber, width / 2, 483);
+
+  context.textAlign = "left";
+  context.fillStyle = ink;
+  context.font = "400 26px Georgia, serif";
+  context.fillText("Niniejszym potwierdza się wydanie dokumentu zgodnie z procedurą:", 180, 602);
+  context.font = "700 35px Georgia, serif";
+  const procedureEnd = drawCanvasParagraph(context, procedure.title, 180, 660, width - 360, 45, 3);
+
+  const detailsTop = Math.max(815, procedureEnd + 52);
+  context.strokeStyle = "#cbd4df";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(180, detailsTop - 25);
+  context.lineTo(width - 180, detailsTop - 25);
+  context.stroke();
+  context.font = "700 14px Arial, sans-serif";
+  context.fillStyle = muted;
+  context.fillText("DZIAŁ PROWADZĄCY", 180, detailsTop + 10);
+  context.fillText("IDENTYFIKATOR PROCEDURY", 680, detailsTop + 10);
+  context.fillText("DATA WYGENEROWANIA", 1120, detailsTop + 10);
+  context.font = "600 21px Arial, sans-serif";
+  context.fillStyle = ink;
+  drawCanvasParagraph(context, department.name, 180, detailsTop + 42, 410, 26, 2);
+  context.fillText(procedure.id || "—", 680, detailsTop + 42);
+  context.fillText(issueTimestamp(), 1120, detailsTop + 42);
+
+  const signatureY = 1010;
+  context.strokeStyle = "#8f9db0";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(180, signatureY);
+  context.lineTo(590, signatureY);
+  context.moveTo(1010, signatureY);
+  context.lineTo(1420, signatureY);
+  context.stroke();
+  context.font = "600 14px Arial, sans-serif";
+  context.fillStyle = muted;
+  context.textAlign = "center";
+  context.fillText("OSOBA WYDAJĄCA", 385, signatureY + 28);
+  context.fillText("PIECZĘĆ / PODPIS", 1215, signatureY + 28);
+  context.font = "400 13px Arial, sans-serif";
+  context.fillText("Wygenerowano cyfrowo w Centrum Procedur State Capitol", width / 2, 1080);
+
+  return canvasToBlob(canvas, format === "jpeg" ? "image/jpeg" : "image/png");
+}
+
+async function downloadIssueConfirmation(procedure, documentNumber, format) {
+  const number = String(documentNumber || "").trim();
+  if (!number) throw new Error("Wpisz numer wydanego dokumentu.");
+  const blob = await createIssueConfirmationBlob(procedure, number, format);
+  const extension = format === "jpeg" ? "jpg" : "png";
+  const safeNumber = number.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "dokument";
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "potwierdzenie-wydania-" + safeNumber + "." + extension;
   link.hidden = true;
   document.body.append(link);
   link.click();
@@ -825,8 +1018,9 @@ app.addEventListener("click", async function (event) {
     const procedure = findProcedure(id);
     const copied = procedure && await copyText(procedureText(procedure));
     showToast(copied ? "Skopiowano procedurę do schowka." : "Nie udało się skopiować procedury.", copied ? "success" : "error");
-  } else if (action === "print-procedure") {
-    window.print();
+  } else if (action === "open-issue-confirmation") {
+    if (findProcedure(id)) setModal({ type: "issue-confirmation", id: id });
+    else showToast("Nie znaleziono procedury do potwierdzenia.", "error");
   } else if (action === "go-back") {
     navigate(state.lastBrowseView.name === "procedure" ? { name: "dashboard" } : state.lastBrowseView);
   } else if (action === "open-teleprompter") {
@@ -916,6 +1110,17 @@ app.addEventListener("submit", async function (event) {
       showToast(error.message || "Nie udało się zalogować administratora.", "error");
       const input = document.getElementById("admin-password");
       if (input) input.select();
+    }
+  }
+  if (form.dataset.form === "issue-confirmation") {
+    const procedure = findProcedure(String(formData.get("id") || ""));
+    const format = event.submitter && event.submitter.dataset.format === "jpeg" ? "jpeg" : "png";
+    try {
+      if (!procedure) throw new Error("Nie znaleziono procedury do potwierdzenia.");
+      await downloadIssueConfirmation(procedure, formData.get("document-number"), format);
+      showToast("Pobrano potwierdzenie wydania w formacie " + (format === "jpeg" ? "JPG" : "PNG") + ".", "success");
+    } catch (error) {
+      showToast(error.message || "Nie udało się wygenerować potwierdzenia.", "error");
     }
   }
 });
