@@ -1,6 +1,6 @@
 import { DEPARTMENTS, DEPARTMENT_NOTE, ORGANIZATION } from "./config.js";
 import {
-  addOrUpdateProcedure, applyTheme, canDeleteProcedures, createBackup, departmentFor, departmentsWithCounts, exportProceduresAsJson,
+  addOrUpdateProcedure, applyTheme, canDeleteProcedures, createBackup, departmentsWithCounts, exportProceduresAsJson,
   favoriteProcedures, findProcedure, importProceduresFromJson, initialize, isFavorite, isSearchingProcedures, loadData,
   lock, migrateLegacyProcedures, navigate, notify, openProcedure, procedureText, recentProcedures, refreshBackups, removeProcedure,
   restoreBackup, searchProcedures, setMobileNav, setModal, setPalette, setSearch, setSidebarCompact,
@@ -495,9 +495,9 @@ function adminLoginModal() {
 function issueConfirmationModal(id) {
   const procedure = findProcedure(id);
   if (!procedure) return modalShell("Nie znaleziono procedury", "<p class='modal-copy'>Nie można przygotować potwierdzenia dla nieistniejącej procedury.</p>", button("Zamknij", "close-modal", { variant: "primary" }), true);
-  const department = departmentFor(procedure.dept);
-  const body = "<form id='issue-confirmation-form' class='form-grid' data-form='issue-confirmation'><input type='hidden' name='id' value='" + escapeHtml(procedure.id) + "'><div class='modal__notice'><b>Procedura:</b> " + escapeHtml(procedure.title) + "<br><b>Dział:</b> " + escapeHtml(department.name) + "</div><div class='field'><label for='issue-document-number'>Numer wydanego dokumentu</label><input id='issue-document-number' required name='document-number' autocomplete='off' placeholder='Np. HHS/2026/00421'><span class='field__hint'>Wpisz numer wygenerowany w systemie źródłowym. Nie jest on zapisywany w bazie danych.</span></div></form>";
+  const body = "<form id='issue-confirmation-form' class='form-grid' data-form='issue-confirmation'><input type='hidden' name='id' value='" + escapeHtml(procedure.id) + "'><div class='field'><label for='issue-document-number'>Numer wydanego dokumentu</label><input id='issue-document-number' required name='document-number' autocomplete='off' placeholder='Np. HHS/2026/00421'><span class='field__hint'>Wpisz numer wygenerowany w systemie źródłowym. Nie jest on zapisywany w bazie danych.</span></div><div class='field'><label for='issue-issued-by'>Osoba wydająca</label><input id='issue-issued-by' required name='issued-by' autocomplete='name' placeholder='Imię i nazwisko osoby wydającej'></div></form>";
   const footer = button("Anuluj", "close-modal", { variant: "ghost" }) +
+    "<button class='button' type='submit' form='issue-confirmation-form' data-format='clipboard'>" + icon("copy", 15) + "<span>Kopiuj obraz</span></button>" +
     "<button class='button' type='submit' form='issue-confirmation-form' data-format='jpeg'>" + icon("copy", 15) + "<span>Pobierz JPG</span></button>" +
     "<button class='button button--primary' type='submit' form='issue-confirmation-form' data-format='png'>" + icon("check", 15) + "<span>Pobierz PNG</span></button>";
   return modalShell("Potwierdzenie wydania", body, footer, false, "Wygeneruj urzędowy kwitek potwierdzający wydanie dokumentu.");
@@ -715,13 +715,41 @@ function drawCanvasParagraph(context, text, x, y, maxWidth, lineHeight, maxLines
   return y + Math.min(lines.length, maxLines) * lineHeight;
 }
 
-function loadCanvasImage(source) {
+async function loadCanvasImage(source) {
+  const response = await fetch(source, { cache: "force-cache" });
+  if (!response.ok) throw new Error("Nie udało się pobrać pieczęci.");
+  const blob = await response.blob();
+  if (typeof createImageBitmap === "function") return createImageBitmap(blob);
   return new Promise(function (resolve, reject) {
     const image = new Image();
     image.onload = function () { resolve(image); };
     image.onerror = reject;
-    image.src = source;
+    image.src = URL.createObjectURL(blob);
   });
+}
+
+function drawOfficialSeal(context, x, y, size, navy, gold) {
+  const center = x + size / 2;
+  context.save();
+  context.fillStyle = "#fffdf8";
+  context.beginPath();
+  context.arc(center, y + size / 2, size / 2, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = gold;
+  context.lineWidth = 9;
+  context.stroke();
+  context.strokeStyle = navy;
+  context.lineWidth = 3;
+  context.beginPath();
+  context.arc(center, y + size / 2, size / 2 - 14, 0, Math.PI * 2);
+  context.stroke();
+  context.fillStyle = navy;
+  context.font = "700 " + Math.round(size * .2) + "px Georgia, serif";
+  context.textAlign = "center";
+  context.fillText("SC", center, y + size * .56);
+  context.font = "700 " + Math.round(size * .075) + "px Arial, sans-serif";
+  context.fillText("STATE CAPITOL", center, y + size * .76);
+  context.restore();
 }
 
 function canvasToBlob(canvas, type) {
@@ -733,7 +761,7 @@ function canvasToBlob(canvas, type) {
   });
 }
 
-async function createIssueConfirmationBlob(procedure, documentNumber, format) {
+async function createIssueConfirmationBlob(documentNumber, issuedBy, format) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Przeglądarka nie obsługuje generowania dokumentów.");
@@ -747,7 +775,6 @@ async function createIssueConfirmationBlob(procedure, documentNumber, format) {
   const paper = "#fcfaf3";
   const ink = "#17243a";
   const muted = "#59677c";
-  const department = departmentFor(procedure.dept);
 
   context.fillStyle = paper;
   context.fillRect(0, 0, width, height);
@@ -769,15 +796,13 @@ async function createIssueConfirmationBlob(procedure, documentNumber, format) {
   context.fillStyle = "#dbe6f6";
   context.fillText("SAN ANDREAS · CENTRUM PROCEDUR", 125, 163);
 
+  drawOfficialSeal(context, 1304, 62, 132, navy, gold);
   try {
     const seal = await loadCanvasImage("./great_seal-Daa0xzsN.png");
-    context.drawImage(seal, 1335, 72, 104, 104);
+    context.drawImage(seal, 1304, 62, 132, 132);
+    if (typeof seal.close === "function") seal.close();
   } catch (error) {
-    context.strokeStyle = "#dbe6f6";
-    context.lineWidth = 3;
-    context.beginPath();
-    context.arc(1387, 124, 48, 0, Math.PI * 2);
-    context.stroke();
+    // Okrągła pieczęć zastępcza została narysowana przed wczytaniem pliku.
   }
 
   context.textAlign = "center";
@@ -800,14 +825,13 @@ async function createIssueConfirmationBlob(procedure, documentNumber, format) {
   context.font = "700 36px 'DM Mono', Consolas, monospace";
   context.fillText(documentNumber, width / 2, 483);
 
-  context.textAlign = "left";
+  context.textAlign = "center";
   context.fillStyle = ink;
   context.font = "400 26px Georgia, serif";
-  context.fillText("Niniejszym potwierdza się wydanie dokumentu zgodnie z procedurą:", 180, 602);
-  context.font = "700 35px Georgia, serif";
-  const procedureEnd = drawCanvasParagraph(context, procedure.title, 180, 660, width - 360, 45, 3);
+  context.fillText("Niniejszym potwierdza się wydanie dokumentu", width / 2, 602);
+  context.fillText("oznaczonego powyższym numerem.", width / 2, 642);
 
-  const detailsTop = Math.max(815, procedureEnd + 52);
+  const detailsTop = 772;
   context.strokeStyle = "#cbd4df";
   context.lineWidth = 2;
   context.beginPath();
@@ -816,14 +840,14 @@ async function createIssueConfirmationBlob(procedure, documentNumber, format) {
   context.stroke();
   context.font = "700 14px Arial, sans-serif";
   context.fillStyle = muted;
-  context.fillText("DZIAŁ PROWADZĄCY", 180, detailsTop + 10);
-  context.fillText("IDENTYFIKATOR PROCEDURY", 680, detailsTop + 10);
-  context.fillText("DATA WYGENEROWANIA", 1120, detailsTop + 10);
+  context.fillText("OSOBA WYDAJĄCA", 460, detailsTop + 10);
+  context.fillText("DATA WYGENEROWANIA", 1140, detailsTop + 10);
   context.font = "600 21px Arial, sans-serif";
   context.fillStyle = ink;
-  drawCanvasParagraph(context, department.name, 180, detailsTop + 42, 410, 26, 2);
-  context.fillText(procedure.id || "—", 680, detailsTop + 42);
-  context.fillText(issueTimestamp(), 1120, detailsTop + 42);
+  context.textAlign = "left";
+  drawCanvasParagraph(context, issuedBy, 180, detailsTop + 42, 560, 28, 2);
+  context.textAlign = "center";
+  context.fillText(issueTimestamp(), 1140, detailsTop + 42);
 
   const signatureY = 1010;
   context.strokeStyle = "#8f9db0";
@@ -837,18 +861,20 @@ async function createIssueConfirmationBlob(procedure, documentNumber, format) {
   context.font = "600 14px Arial, sans-serif";
   context.fillStyle = muted;
   context.textAlign = "center";
-  context.fillText("OSOBA WYDAJĄCA", 385, signatureY + 28);
-  context.fillText("PIECZĘĆ / PODPIS", 1215, signatureY + 28);
+  context.fillText("PODPIS OSOBY WYDAJĄCEJ", 385, signatureY + 28);
+  context.fillText("PIECZĘĆ", 1215, signatureY + 28);
   context.font = "400 13px Arial, sans-serif";
   context.fillText("Wygenerowano cyfrowo w Centrum Procedur State Capitol", width / 2, 1080);
 
   return canvasToBlob(canvas, format === "jpeg" ? "image/jpeg" : "image/png");
 }
 
-async function downloadIssueConfirmation(procedure, documentNumber, format) {
+async function downloadIssueConfirmation(documentNumber, issuedBy, format) {
   const number = String(documentNumber || "").trim();
+  const issuer = String(issuedBy || "").trim();
   if (!number) throw new Error("Wpisz numer wydanego dokumentu.");
-  const blob = await createIssueConfirmationBlob(procedure, number, format);
+  if (!issuer) throw new Error("Wpisz osobę wydającą dokument.");
+  const blob = await createIssueConfirmationBlob(number, issuer, format);
   const extension = format === "jpeg" ? "jpg" : "png";
   const safeNumber = number.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "dokument";
   const link = document.createElement("a");
@@ -859,6 +885,18 @@ async function downloadIssueConfirmation(procedure, documentNumber, format) {
   link.click();
   link.remove();
   window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 0);
+}
+
+async function copyIssueConfirmationToClipboard(documentNumber, issuedBy) {
+  const number = String(documentNumber || "").trim();
+  const issuer = String(issuedBy || "").trim();
+  if (!number) throw new Error("Wpisz numer wydanego dokumentu.");
+  if (!issuer) throw new Error("Wpisz osobę wydającą dokument.");
+  if (!navigator.clipboard || typeof navigator.clipboard.write !== "function" || typeof ClipboardItem === "undefined") {
+    throw new Error("Ta przeglądarka nie obsługuje kopiowania obrazów do schowka.");
+  }
+  const blob = await createIssueConfirmationBlob(number, issuer, "png");
+  await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
 }
 
 function closeOverlays() {
@@ -1114,11 +1152,17 @@ app.addEventListener("submit", async function (event) {
   }
   if (form.dataset.form === "issue-confirmation") {
     const procedure = findProcedure(String(formData.get("id") || ""));
-    const format = event.submitter && event.submitter.dataset.format === "jpeg" ? "jpeg" : "png";
+    const output = event.submitter && event.submitter.dataset.format || "png";
     try {
       if (!procedure) throw new Error("Nie znaleziono procedury do potwierdzenia.");
-      await downloadIssueConfirmation(procedure, formData.get("document-number"), format);
-      showToast("Pobrano potwierdzenie wydania w formacie " + (format === "jpeg" ? "JPG" : "PNG") + ".", "success");
+      if (output === "clipboard") {
+        await copyIssueConfirmationToClipboard(formData.get("document-number"), formData.get("issued-by"));
+        showToast("Skopiowano potwierdzenie wydania jako obraz PNG.", "success");
+      } else {
+        const format = output === "jpeg" ? "jpeg" : "png";
+        await downloadIssueConfirmation(formData.get("document-number"), formData.get("issued-by"), format);
+        showToast("Pobrano potwierdzenie wydania w formacie " + (format === "jpeg" ? "JPG" : "PNG") + ".", "success");
+      }
     } catch (error) {
       showToast(error.message || "Nie udało się wygenerować potwierdzenia.", "error");
     }
