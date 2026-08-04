@@ -84,6 +84,7 @@ function viewMeta() {
   const meta = {
     dashboard: ["Centrum dowodzenia", "Dashboard"],
     all: ["Centrum procedur", "Wszystkie procedury"],
+    departments: ["Centrum procedur", "Wybierz dział"],
     favorites: ["Twoja przestrzeń", "Ulubione"],
     recents: ["Twoja przestrzeń", "Ostatnio używane"],
     activity: ["Rejestr zmian", "Historia zmian"],
@@ -154,7 +155,7 @@ function dashboardView() {
   return "<section class='dashboard-view'>" +
     "<div class='page-hero'><div><div class='eyebrow'>State Capitol / operacje</div><h1>Wszystkie procedury,<br><em>zawsze pod ręką.</em></h1><p>Przejrzysta baza wiedzy dla zespołu State Capitol. Otwieraj, kopiuj, drukuj i prowadź ceremonie bez szukania po wiadomościach.</p><div class='page-hero__actions'>" +
       button("Otwórz wyszukiwarkę", "open-palette", { icon: "search", variant: "primary" }) +
-      button("Przeglądaj działy", "navigate", { icon: "building", extra: "data-view='department' data-dept='go'" }) +
+      button("Przeglądaj działy", "navigate", { icon: "building", extra: "data-view='departments'" }) +
     "</div></div><div class='hero-orbit' aria-hidden='true'><div class='hero-orbit__core'><img src='./great_seal-Daa0xzsN.png' alt=''></div><i></i><b></b></div></div>" +
     "<div class='stat-grid'>" +
       statCard(String(state.data.procedures.length), "aktywnych procedur", "command", "brand", "all") +
@@ -168,9 +169,7 @@ function dashboardView() {
       (favorites.length ? "<div class='quick-procedure-list'>" + favorites.map(function (procedure) { return quickProcedure(procedure); }).join("") + "</div>" : emptyInline("Oznacz gwiazdką procedury, których używasz najczęściej.", "", "")) +
     "</section></div>" +
     "<section class='dashboard-panel'><div class='panel-heading'><div><span class='section-label'>Mapa wiedzy</span><h2>Działy i procedury</h2></div></div><div class='department-grid'>" +
-      departments.map(function (department) {
-        return "<button type='button' class='department-tile " + (department.group === "legal" ? "is-legal" : "") + "' data-action='navigate' data-view='department' data-dept='" + escapeHtml(department.id) + "'>" + departmentTileMark(department) + "<strong>" + escapeHtml(department.name) + "</strong><b>" + department.count + "</b></button>";
-      }).join("") +
+      departments.map(departmentTile).join("") +
     "</div></section>" +
     "<section class='dashboard-panel'><div class='panel-heading'><div><span class='section-label'>Rejestr</span><h2>Ostatnie zmiany</h2></div>" + button("Pełna historia", "navigate", { small: true, variant: "ghost", extra: "data-view='activity'" }) + "</div>" +
       (latest.length ? "<div class='activity-list'>" + latest.map(activityItem).join("") + "</div>" : emptyInline("Brak wpisów w rejestrze zmian.", "", "")) +
@@ -187,6 +186,17 @@ function statCard(value, label, iconName, tone, view) {
 
 function emptyInline(text, actionLabel, action) {
   return "<div class='inline-empty'><span>" + icon("clock", 17) + "</span><p>" + escapeHtml(text) + "</p>" + (action ? button(actionLabel, action, { small: true }) : "") + "</div>";
+}
+
+function departmentTile(department) {
+  return "<button type='button' class='department-tile " + (department.group === "legal" ? "is-legal" : "") + "' data-action='navigate' data-view='department' data-dept='" + escapeHtml(department.id) + "'>" + departmentTileMark(department) + "<strong>" + escapeHtml(department.name) + "</strong><b>" + department.count + "</b></button>";
+}
+
+function departmentsView() {
+  const departments = departmentsWithCounts();
+  return "<section class='list-view'><header class='view-heading'><div><div class='eyebrow'>Centrum procedur</div><h1>Wybierz dział</h1><p>Wybierz dział, aby zobaczyć przypisane do niego procedury.</p></div></header><div class='department-grid'>" +
+    departments.map(departmentTile).join("") +
+    "</div></section>";
 }
 
 function departmentView() {
@@ -302,6 +312,7 @@ function mainView() {
   if (state.status === "error") return emptyState("Nie udało się wczytać rejestru", "Sprawdź konfigurację Firebase, reguły Cloud Firestore oraz połączenie z internetem.", "warning", button("Spróbuj ponownie", "refresh-data", { icon: "refresh", variant: "primary" }));
   if (state.view.name === "dashboard") return dashboardView();
   if (state.view.name === "all") return titledListView("Wszystkie procedury", "Centrum procedur", state.data.procedures, "Brak procedur", "Nie ma jeszcze procedur w kolekcji Firestore.");
+  if (state.view.name === "departments") return departmentsView();
   if (state.view.name === "department") return departmentView();
   if (state.view.name === "favorites") return titledListView("Ulubione", "Twoja przestrzeń", favoriteProcedures(), "Brak ulubionych", "Oznacz gwiazdką procedury, które chcesz mieć zawsze pod ręką.");
   if (state.view.name === "recents") return titledListView("Ostatnio używane", "Twoja przestrzeń", recentProcedures(), "Brak ostatnio używanych", "Otwórz procedurę, a pojawi się w tej sekcji.");
