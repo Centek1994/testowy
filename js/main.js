@@ -958,16 +958,75 @@ async function downloadIssueConfirmation(documentNumber, issuedBy, documentTitle
   window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 0);
 }
 
+function blobToDataUrl(blob) {
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function () { resolve(String(reader.result || "")); };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function copyImageWithLegacyClipboard(blob) {
+  try {
+    const dataUrl = await blobToDataUrl(blob);
+    return await new Promise(function (resolve) {
+      const editor = document.createElement("div");
+      const image = document.createElement("img");
+      editor.contentEditable = "true";
+      editor.style.position = "fixed";
+      editor.style.left = "-10000px";
+      editor.style.top = "0";
+      editor.style.width = "1600px";
+      editor.style.opacity = "0";
+      editor.style.pointerEvents = "none";
+      image.alt = "Potwierdzenie wydania";
+      image.onload = function () {
+        let copied = false;
+        try {
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNode(image);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          editor.focus();
+          copied = document.execCommand("copy");
+          selection.removeAllRanges();
+        } catch (error) {
+          copied = false;
+        }
+        editor.remove();
+        resolve(copied);
+      };
+      image.onerror = function () {
+        editor.remove();
+        resolve(false);
+      };
+      image.src = dataUrl;
+      editor.append(image);
+      document.body.append(editor);
+    });
+  } catch (error) {
+    return false;
+  }
+}
+
 async function copyIssueConfirmationToClipboard(documentNumber, issuedBy, documentTitle) {
   const number = String(documentNumber || "").trim();
   const issuer = String(issuedBy || "").trim();
   if (!number) throw new Error("Wpisz numer wydanego dokumentu.");
   if (!issuer) throw new Error("Wpisz osobę wydającą dokument.");
-  if (!navigator.clipboard || typeof navigator.clipboard.write !== "function" || typeof ClipboardItem === "undefined") {
-    throw new Error("Ta przeglądarka nie obsługuje kopiowania obrazów do schowka.");
-  }
   const blob = await createIssueConfirmationBlob(number, issuer, documentTitle, "png");
-  await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+  if (navigator.clipboard && typeof navigator.clipboard.write === "function" && typeof ClipboardItem !== "undefined") {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      return;
+    } catch (error) {
+      // Starsze przeglądarki lub blokada uprawnień mogą obsłużyć metodę zapasową.
+    }
+  }
+  if (await copyImageWithLegacyClipboard(blob)) return;
+  throw new Error("Nie udało się skopiować obrazu. Użyj przycisku „Pobierz PNG” w tej przeglądarce.");
 }
 
 function closeOverlays() {
