@@ -6,6 +6,7 @@ import {
   subscribeToAdministratorSession
 } from "../firebase.js";
 import {
+  createCurrentHistoryBaseline,
   createFirestoreBackup,
   createProcedureInFirestore,
   deleteProcedureInFirestore,
@@ -92,6 +93,7 @@ let unsubscribeFirestore = null;
 let unsubscribeAdministratorSession = null;
 let searchTimeout = 0;
 let searchRequestId = 0;
+let historyBaselineRequest = null;
 const searchCache = new Map();
 
 export const state = {
@@ -162,6 +164,16 @@ function applyAdministratorSession(session) {
     : { status: "signed-out", user: null };
   state.editMode = Boolean(session && session.canEdit);
   notify();
+  startCurrentHistoryForAdministrator(session);
+}
+
+function startCurrentHistoryForAdministrator(session) {
+  if (!session || !session.canDelete || historyBaselineRequest) return;
+  historyBaselineRequest = createCurrentHistoryBaseline().then(function (created) {
+    if (created) showToast("Rozpoczęto nową historię zmian od importu aktualnych procedur.", "success");
+  }).catch(function (error) {
+    showToast(error.message || "Nie udało się rozpocząć nowej historii zmian.", "error");
+  });
 }
 
 function handleAdministratorError(error) {

@@ -1,6 +1,11 @@
 import { getFirebaseServices } from "../firebase.js";
 import { buildSearchPrefixes, searchTerms } from "./search-index.js";
 
+// Każdy start historii otrzymuje własny znacznik. Dzięki temu wcześniejsze,
+// archiwalne wpisy pozostają w Firestore, ale nie są już pokazywane w aplikacji.
+const CURRENT_HISTORY_EPOCH = "current-procedures-import-2026-08-04";
+const CURRENT_HISTORY_ENTRY_ID = "system-current-procedures-import-2026-08-04";
+
 function procedureFromSnapshot(snapshot) {
   const data = snapshot.data();
   return Object.assign({}, data, {
@@ -63,6 +68,7 @@ function logPayload(services, log) {
     userId: currentActor.id,
     userEmail: currentActor.email,
     userName: currentActor.name,
+    historyEpoch: log.historyEpoch || CURRENT_HISTORY_EPOCH,
     createdAt: services.firestore.serverTimestamp(),
     createdBy: currentActor.id
   };
@@ -91,6 +97,16 @@ function automaticLog(type, procedure) {
     procedureId: procedure.id,
     procedureTitle: procedure.title
   }, logMoment());
+}
+
+function currentHistoryQuery(services) {
+  const firestore = services.firestore;
+  return firestore.query(
+    firestore.collection(services.db, "logs"),
+    firestore.where("historyEpoch", "==", CURRENT_HISTORY_EPOCH),
+    firestore.orderBy("createdAt", "desc"),
+    firestore.limit(100)
+  );
 }
 
 function procedurePayload(procedure) {
@@ -180,11 +196,7 @@ export async function readRegistry() {
     firestore.collection(services.db, "procedures"),
     firestore.orderBy("sortOrder", "asc")
   );
-  const logsQuery = firestore.query(
-    firestore.collection(services.db, "logs"),
-    firestore.orderBy("createdAt", "desc"),
-    firestore.limit(100)
-  );
+  const logsQuery = currentHistoryQuery(services);
   const snapshots = await Promise.all([
     firestore.getDocs(proceduresQuery),
     firestore.getDocs(logsQuery)
@@ -217,11 +229,7 @@ export async function subscribeToRegistry(onChange, onError) {
     firestore.collection(services.db, "procedures"),
     firestore.orderBy("sortOrder", "asc")
   );
-  const logsQuery = firestore.query(
-    firestore.collection(services.db, "logs"),
-    firestore.orderBy("createdAt", "desc"),
-    firestore.limit(100)
-  );
+  const logsQuery = currentHistoryQuery(services);
   let procedures = null;
   let log = null;
 
@@ -243,6 +251,25 @@ export async function subscribeToRegistry(onChange, onError) {
     unsubscribeProcedures();
     unsubscribeLogs();
   };
+}
+
+export async function createCurrentHistoryBaseline() {
+  const services = await getFirebaseServices();
+  const firestore = services.firestore;
+  const reference = firestore.doc(services.db, "logs", CURRENT_HISTORY_ENTRY_ID);
+  const existing = await firestore.getDoc(reference);
+  if (existing.exists()) return false;
+
+  const currentActor = actor(services);
+  if (!currentActor.id) throw new Error("Zaloguj się jako administrator, aby rozpocząć nową historię zmian.");
+
+  await firestore.setDoc(reference, logPayload(services, Object.assign({
+    type: "import",
+    procedureId: "system-current-procedures-import",
+    procedureTitle: "Zaimportowano aktualne procedury do systemu",
+    historyEpoch: CURRENT_HISTORY_EPOCH
+  }, logMoment())));
+  return true;
 }
 
 export async function createProcedureInFirestore(procedure, log) {
@@ -322,7 +349,8 @@ function legacyLog(entry, index) {
     legacyDate: sourceDate,
     legacyType: sourceType,
     legacyText: text,
-    source: "procedury.json"
+    source: "procedury.json",
+    historyEpoch: "legacy-procedury-json"
   };
 }
 

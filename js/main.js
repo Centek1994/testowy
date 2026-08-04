@@ -235,14 +235,14 @@ function searchView() {
 }
 
 function activityItem(entry) {
-  const type = entry.type === "create" ? "Dodano" : entry.type === "delete" ? "Usunięto" : "Zmieniono";
-  const className = entry.type === "create" ? "activity-item--add" : entry.type === "delete" ? "activity-item--del" : "activity-item--mod";
+  const type = entry.type === "import" ? "Import" : entry.type === "create" ? "Dodano" : entry.type === "delete" ? "Usunięto" : "Zmieniono";
+  const className = entry.type === "import" || entry.type === "create" ? "activity-item--add" : entry.type === "delete" ? "activity-item--del" : "activity-item--mod";
   return "<article class='activity-item " + className + "'><span class='activity-item__type'>" + escapeHtml(type) + "</span><div class='activity-item__procedure'><strong>" + escapeHtml(entry.procedureTitle || "Nieznana procedura") + "</strong><span>" + escapeHtml(entry.user || "Nieznany użytkownik") + "</span></div><time class='activity-item__date'>" + escapeHtml(entry.date || "—") + "<span>" + escapeHtml(entry.time || "—") + "</span></time></article>";
 }
 
 function activityView() {
-  return "<section class='list-view'><header class='view-heading'><div><div class='eyebrow'>Cloud Firestore / logs</div><h1>Historia zmian</h1><p>Automatyczny rejestr operacji wykonanych na procedurach.</p></div></header>" +
-    (state.data.log.length ? "<div class='activity-list activity-list--full'><div class='activity-list__head'><span>Operacja</span><span>Procedura i użytkownik</span><span>Data i godzina</span></div>" + state.data.log.map(activityItem).join("") + "</div>" : emptyState("Brak wpisów", "Każda zmiana procedury utworzy wpis w kolekcji logs.", "activity")) +
+  return "<section class='list-view'><header class='view-heading'><div><div class='eyebrow'>Cloud Firestore / logs</div><h1>Historia zmian</h1><p>Rejestr rozpoczyna się od importu aktualnych procedur. Kolejne wpisy dotyczą wyłącznie zmian wykonanych od tego momentu.</p></div></header>" +
+    (state.data.log.length ? "<div class='activity-list activity-list--full'><div class='activity-list__head'><span>Operacja</span><span>Procedura i użytkownik</span><span>Data i godzina</span></div>" + state.data.log.map(activityItem).join("") + "</div>" : emptyState("Historia oczekuje na start", "Przy pierwszym wejściu administratora pojawi się wpis o imporcie aktualnych procedur.", "activity")) +
     "</section>";
 }
 
